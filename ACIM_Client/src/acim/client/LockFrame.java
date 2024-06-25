@@ -11,7 +11,7 @@ public class LockFrame extends JFrame {
 		super();
 
 		JPanel contentPane = new JPanel();
-		Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+		Dimension size = new Dimension(640, 480); // Toolkit.getDefaultToolkit().getScreenSize();
 
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setMinimumSize(size);

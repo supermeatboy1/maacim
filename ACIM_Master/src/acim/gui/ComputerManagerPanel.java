@@ -1,7 +1,11 @@
 package acim.gui;
+
 import java.awt.*;
+import java.awt.event.*;
 
 import javax.swing.*;
+
+import acim.net.ClientManager;
 
 public class ComputerManagerPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -10,6 +14,8 @@ public class ComputerManagerPanel extends JPanel {
 	public JPanel getComputerListPanel() { return panelComputerList; }
 
 	public ComputerManagerPanel() {
+		JPanel thisPanel = this;
+		
 		setLayout(new GridLayout(0, 1, 0, 0));
 
 		JSplitPane splitPaneComputerManager = new JSplitPane();
@@ -34,27 +40,63 @@ public class ComputerManagerPanel extends JPanel {
 		panelComputerControl.setLayout(new GridLayout(2, 2, 16, 16));
 
 		JButton btnMessage = new JButton("Message");
+		btnMessage.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String ipAddress = ClientManager.getSelectedIpAddress();
+				if (ipAddress == null)
+					return;
+				
+				String msg = JOptionPane.showInputDialog(thisPanel, "Enter a message for " + ipAddress + ".");
+				ClientManager.queueCommandToSelectedConnection("message " + msg);
+				System.out.println("Message: " + msg);
+			}
+		});
 		panelComputerControl.add(btnMessage);
-		
-		JButton btnModifyInfo = new JButton("Modify Info");
-		panelComputerControl.add(btnModifyInfo);
-
-		JButton btnAllowAccess = new JButton("Allow Access");
-		panelComputerControl.add(btnAllowAccess);
 
 		JButton btnSendFile = new JButton("Send File");
+		btnSendFile.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+			}
+		});
 		panelComputerControl.add(btnSendFile);
 
 		JButton btnScreenCapture = new JButton("Screenshot");
+		btnScreenCapture.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+			}
+		});
 		panelComputerControl.add(btnScreenCapture);
 		
 		JButton btnKickOut = new JButton("Kick Out");
+		btnKickOut.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+			}
+		});
 		panelComputerControl.add(btnKickOut);
 		
 		JButton btnShutdown = new JButton("Shutdown");
+		btnShutdown.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ClientManager.queueCommandToSelectedConnection("shutdown ");
+			}
+		});
 		panelComputerControl.add(btnShutdown);
 
 		JButton btnRestart = new JButton("Restart");
+		btnRestart.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ClientManager.queueCommandToSelectedConnection("restart ");
+			}
+		});
 		panelComputerControl.add(btnRestart);
 	}
 }

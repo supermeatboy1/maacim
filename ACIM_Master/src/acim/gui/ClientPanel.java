@@ -1,10 +1,14 @@
 package acim.gui;
+
 import java.awt.*;
 import java.net.*;
 
 import javax.swing.*;
 
+import acim.net.*;
+
 import javax.imageio.*;
+import java.awt.event.*;
 
 public class ClientPanel extends JPanel {
 	public enum Status {
@@ -12,11 +16,11 @@ public class ClientPanel extends JPanel {
 		IN_USE,
 		INACTIVE
 	};
-
+	public static final Color HIGHLIGHTED_COLOR = new Color(138, 206, 0);
+	
 	private static final long serialVersionUID = 1L;
-
 	private static ImageIcon iconClientPanelActive, iconClientPanelInUse, iconClientPanelInactive;
-
+	
 	private String ipAddress;
 	private int port;
 	private String nickname;
@@ -24,10 +28,26 @@ public class ClientPanel extends JPanel {
 	private Status status;
 
 	private JLabel lblText;
-
-	private ClientPanel() {}
+	private Color defaultBackgroundColor;
+	private Color defaultTextColor;
 
 	public ClientPanel(String ipAddress, int port, String nickname) {
+
+		ClientPanel thisPanel = this;
+		addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				ClientManager.resetCurrentSelectedClient();
+
+				if (!isLocalClientPanel) {
+					setBackground(HIGHLIGHTED_COLOR);
+					lblText.setForeground(Color.DARK_GRAY);
+					
+					ClientManager.setSelectedClientConnection(thisPanel);
+				}
+			}
+		});
+		
 		setLayout(new BorderLayout(0, 0));
 		try {
 			if (iconClientPanelActive == null)
@@ -55,6 +75,9 @@ public class ClientPanel extends JPanel {
 		this.status = Status.INACTIVE;
 
 		updateText();
+
+		defaultBackgroundColor = getBackground();
+		defaultTextColor = lblText.getForeground();
 	}
 
 	public void updateText() {
@@ -73,6 +96,10 @@ public class ClientPanel extends JPanel {
 		default:
 			lblText.setIcon(iconClientPanelInactive);
 		}
+	}
+	public void resetColors() {
+		setBackground(defaultBackgroundColor);
+		lblText.setForeground(defaultTextColor);
 	}
 
 	public void setStatus(Status status) {
@@ -99,7 +126,7 @@ public class ClientPanel extends JPanel {
 			self.updateText();
 			return self;
 		} catch (UnknownHostException e) {
-			JOptionPane.showMessageDialog(null, "Unknown host: " + e.getLocalizedMessage(), "UnknownHostException", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null, "Unknown host: " + e.getLocalizedMessage(), e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 			System.exit(-1);
 		}

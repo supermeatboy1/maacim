@@ -10,15 +10,16 @@ import javax.swing.*;
 import acim.gui.*;
 
 public class ClientManager {
-	private static ArrayList<ClientThread> clientThreads;
+	private static ArrayList<ClientConnection> clientConnections;
+	private static ClientConnection selectedClientConnection;
 	private static JPanel managerPanel;
 	
 	public static void initialize() {
-		clientThreads = new ArrayList<ClientThread>();
+		clientConnections = new ArrayList<ClientConnection>();
 	}
 	public static void forceCloseEverything() throws IOException {
-		for (ClientThread thread : clientThreads) {
-			thread.closeConnection();
+		for (ClientConnection conn : clientConnections) {
+			conn.closeConnection();
 		}
 	}
 	public static void addClient(Socket client) throws IOException {
@@ -27,17 +28,44 @@ public class ClientManager {
 			client.close();
 		}
 
-		ClientThread thread = new ClientThread(client);
-		clientThreads.add(thread);
-		thread.start();
+		ClientConnection conn = new ClientConnection(client);
+		clientConnections.add(conn);
+		conn.startThreads();
 		
 		addClientToPanel(client);
 	}
-	public static void removeClientThread(ClientThread thread) {
-		if (clientThreads.contains(thread)) {
-			clientThreads.remove(thread);
+	public static void removeClientConnection(ClientConnection connection) {
+		if (clientConnections.contains(connection)) {
+			clientConnections.remove(connection);
 		}
-		removeClientFromPanel(thread.getClientSocket().getInetAddress().getHostAddress());
+		removeClientFromPanel(connection.getIpAddress());
+		
+		// Deselect the current client connection just in case it's the same one we're removing.
+		if (connection.equals(selectedClientConnection)) {
+			selectedClientConnection = null;
+		}
+	}
+	public static void setSelectedClientConnection(ClientPanel panel) {
+		for (ClientConnection connection : clientConnections) {
+			if (connection.getIpAddress().equals(panel.getIpAddress())) {
+				selectedClientConnection = connection;
+				return;
+			}
+		}
+	}
+	public static void queueCommandToSelectedConnection(String command) {
+		if (selectedClientConnection == null) {
+			JOptionPane.showMessageDialog(null, "<html>No computer selected!<br>Please select a computer before performing an action.</html>", "No computer selected!", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		selectedClientConnection.queueCommand(command);
+	}
+	public static String getSelectedIpAddress() {
+		if (selectedClientConnection == null) {
+			JOptionPane.showMessageDialog(null, "<html>No computer selected!<br>Please select a computer before performing an action.</html>", "No computer selected!", JOptionPane.ERROR_MESSAGE);
+			return null;
+		}
+		return selectedClientConnection.getIpAddress();
 	}
 	
 	// Functions that modify the GUI.
@@ -87,6 +115,17 @@ public class ClientManager {
 				managerPanel.revalidate();
 				managerPanel.repaint();
 			}
+		}
+	}
+	public static void resetCurrentSelectedClient() {
+		selectedClientConnection = null;
+		
+		for (Component c : managerPanel.getComponents()) {
+			if (!(c instanceof ClientPanel))
+				continue;
+			
+			ClientPanel panel = (ClientPanel) c;
+			panel.resetColors();
 		}
 	}
 }
