@@ -2,10 +2,13 @@ package acim.gui;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Base64;
 
 import javax.swing.*;
 
-import acim.net.ClientManager;
+import acim.net.*;
 
 public class ComputerManagerPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -15,7 +18,7 @@ public class ComputerManagerPanel extends JPanel {
 
 	public ComputerManagerPanel() {
 		JPanel thisPanel = this;
-		
+
 		setLayout(new GridLayout(0, 1, 0, 0));
 
 		JSplitPane splitPaneComputerManager = new JSplitPane();
@@ -27,13 +30,13 @@ public class ComputerManagerPanel extends JPanel {
 		scrollPaneComputers.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrollPaneComputers.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 		splitPaneComputerManager.setLeftComponent(scrollPaneComputers);
-		
+
 		panelComputerList = new JPanel();
 		scrollPaneComputers.setViewportView(panelComputerList);
 		panelComputerList.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 		panelComputerList.setLayout(new GridLayout(2, 2, 16, 16));
 		panelComputerList.add(ClientPanel.createLocalPanel());
-		
+
 		JPanel panelComputerControl = new JPanel();
 		splitPaneComputerManager.setRightComponent(panelComputerControl);
 		panelComputerControl.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
@@ -46,7 +49,7 @@ public class ComputerManagerPanel extends JPanel {
 				String ipAddress = ClientManager.getSelectedIpAddress();
 				if (ipAddress == null)
 					return;
-				
+
 				String msg = JOptionPane.showInputDialog(thisPanel, "Enter a message for " + ipAddress + ".");
 				ClientManager.queueCommandToSelectedConnection("message " + msg);
 				System.out.println("Message: " + msg);
@@ -58,7 +61,63 @@ public class ComputerManagerPanel extends JPanel {
 		btnSendFile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				JFileChooser chooser = new JFileChooser();
+				if (chooser.showOpenDialog(thisPanel) != JFileChooser.APPROVE_OPTION)
+					return;
+
+				File file = chooser.getSelectedFile();
+
+				System.out.println("Sending file " + file.getAbsolutePath());
+
+				ClientManager.queueCommandToSelectedConnection("start sending file");
+				ClientManager.queueCommandToSelectedConnectionDirect("filename " + file.getName());
+
+				FileInputStream fis;
+				try {
+					fis = new FileInputStream(file);
+				} catch (FileNotFoundException e1) {
+					e1.printStackTrace();
+					return;
+				}
+
+				// Create a progress window
+				JFrame progressFrame = new JFrame("File operation");
+				JPanel panel = new JPanel();
+				JLabel lblProgress = new JLabel("Sending file " + file.getName() + "...");
+				panel.add(lblProgress);
+
+				progressFrame.setLocationRelativeTo(thisPanel);
+				progressFrame.add(panel);
+				progressFrame.pack();
+				progressFrame.setResizable(false);
+				progressFrame.setVisible(true);
+				progressFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				
+				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+					@Override
+					protected Void doInBackground() throws Exception {
+
+						byte[] buffer = new byte[512];
+						long read_bytes = 0;
+						try {
+							Base64.Encoder encoder = Base64.getUrlEncoder();
+							while ((read_bytes = fis.read(buffer)) > 0) {
+								String encoded_string = encoder.encodeToString(buffer);
+								ClientManager.queueCommandToSelectedConnectionDirect("chunk length " + read_bytes);
+								ClientManager.queueCommandToSelectedConnectionDirect(encoded_string);
+								progressFrame.requestFocus();
+							}
+							ClientManager.queueCommandToSelectedConnectionDirect("end sending file");
+						} catch (IOException e1) {
+							e1.printStackTrace();
+							ClientManager.queueCommandToSelectedConnectionDirect("cancel sending file");
+						}
+						progressFrame.dispose();
+						return null;
+					}
+				};
+
+				worker.execute();
 			}
 		});
 		panelComputerControl.add(btnSendFile);
@@ -67,25 +126,25 @@ public class ComputerManagerPanel extends JPanel {
 		btnScreenCapture.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				
+				ClientManager.queueCommandToSelectedConnection("request screenshot");
 			}
 		});
 		panelComputerControl.add(btnScreenCapture);
-		
+
 		JButton btnKickOut = new JButton("Kick Out");
 		btnKickOut.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				
+				ClientManager.queueCommandToSelectedConnection("kickout");
 			}
 		});
 		panelComputerControl.add(btnKickOut);
-		
+
 		JButton btnShutdown = new JButton("Shutdown");
 		btnShutdown.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ClientManager.queueCommandToSelectedConnection("shutdown ");
+				ClientManager.queueCommandToSelectedConnection("shutdown");
 			}
 		});
 		panelComputerControl.add(btnShutdown);
@@ -94,7 +153,7 @@ public class ComputerManagerPanel extends JPanel {
 		btnRestart.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ClientManager.queueCommandToSelectedConnection("restart ");
+				ClientManager.queueCommandToSelectedConnection("restart");
 			}
 		});
 		panelComputerControl.add(btnRestart);

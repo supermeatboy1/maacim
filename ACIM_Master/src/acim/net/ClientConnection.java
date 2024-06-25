@@ -1,9 +1,12 @@
 package acim.net;
 
+import java.awt.image.*;
 import java.io.*;
 import java.net.*;
+import java.text.*;
 import java.util.*;
 
+import javax.imageio.*;
 import javax.swing.*;
 
 /**
@@ -12,7 +15,7 @@ import javax.swing.*;
 public class ClientConnection {
 	private Socket client;
 
-	private Scanner scan;
+	private BufferedReader reader;
 	private PrintWriter writer;
 	
 	private String ipAddress;
@@ -29,8 +32,8 @@ public class ClientConnection {
 		super();
 		this.client = client;
 
-		scan = new Scanner(client.getInputStream());
-		writer = new PrintWriter(client.getOutputStream(), true);
+		reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+		writer = new PrintWriter(client.getOutputStream());
 		
 		ipAddress = client.getInetAddress().getHostAddress();
 		port = client.getPort();
@@ -81,24 +84,64 @@ public class ClientConnection {
 			
 			try {
 				while (client.isConnected()) {
-					String input = scan.nextLine();
-
-					// Reflect input back to the client.
-					writer.println("> " + input + "\r");
-					System.out.println("[ IN " + ipAddress + ":" + port + " ]: " + input);
+					Thread.sleep(1);
+					String input = reader.readLine();
+					if (input == null) {
+						close();
+						return;
+					}
 
 					if (input.equals("quit") || input.equals("exit")) {
 						close();
 						break;
-					} else {
+					} else if (input.equals("start receive screenshot")) {
+						SimpleDateFormat sdf = new SimpleDateFormat("MMMM dd, yyyy, HH-mm-ss");
+						String date_time_str = sdf.format(new Date());
+						
+						boolean complete = false;
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						Base64.Decoder decoder = Base64.getUrlDecoder();
+						
+						while (!complete) {
+							Thread.sleep(1);
+							String line = reader.readLine();
+							if (line.startsWith("chunk length ")) {
+								int chunk_length = Integer.parseInt(line.replaceFirst("chunk length ", ""));
+								byte[] chunk = decoder.decode(reader.readLine());
+								Thread.sleep(1);
+								baos.write(chunk, 0, chunk_length);
+							} else if (line.startsWith("stop receive screenshot")) {
+								complete = true;
+								break;
+							}
+						}
+						baos.flush();
+						baos.close();
+						
+						BufferedImage screenshot = ImageIO.read(new ByteArrayInputStream(baos.toByteArray()));
+						
+						SwingUtilities.invokeLater(new Runnable() {
+							public void run() {
+								JFrame screenshotFrame = new JFrame("[Screenshot] " + date_time_str);
+								JPanel panel = new JPanel();
+								panel.add(new JLabel(new ImageIcon(screenshot)));
+
+								screenshotFrame.setLocationRelativeTo(null);
+								screenshotFrame.add(panel);
+								screenshotFrame.pack();
+								screenshotFrame.setResizable(false);
+								screenshotFrame.setVisible(true);
+								screenshotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+							}
+						});
+					} else if (input.startsWith("message ")) {
 						// Display the message through a dialog box.
-						JOptionPane.showMessageDialog(null, input,
+						JOptionPane.showMessageDialog(null, "<html>" + input.replaceFirst("message ", "") + "</html>",
 								"Client (" + ipAddress + ":" + port + ") has a message for you!",
 								JOptionPane.INFORMATION_MESSAGE);
 					}
 				}
-			} catch (NoSuchElementException e) {
-				// This exception is thrown when the connection is abruptly cut.
+			} catch (Exception e) {
 				close();
 			}
 		}
@@ -108,7 +151,7 @@ public class ClientConnection {
 		@Override
 		public void run() {
 			while (client.isConnected()) {
-				// Wait until an command is queued.
+				// Wait until a command is queued.
 				while (commandQueue.isEmpty()) {
 					try {
 						sleep(500);
@@ -117,12 +160,12 @@ public class ClientConnection {
 					}
 				}
 				
-				// Empty all queued commands
+				// Empty all queued commands.
 				while (!commandQueue.isEmpty()) {
 					String command = commandQueue.poll();
-					System.out.println("[ OUT " + ipAddress + ":" + port + " ]: " + command);
 					writer.println(command + "\r");
 				}
+				writer.flush();
 			}
 		}
 	}

@@ -70,7 +70,8 @@ public class MainWindow {
 			public void windowDeactivated(WindowEvent e) {}
 		});
 		
-		frame.setLocationRelativeTo(null);
+		// frame.setLocationRelativeTo(null);
+		frame.setLocation(0, 0);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
 
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);

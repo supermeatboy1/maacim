@@ -53,16 +53,27 @@ public class ClientManager {
 			}
 		}
 	}
+	public static void queueCommandToSelectedConnectionDirect(String command) {
+		selectedClientConnection.queueCommand(command);
+	}
 	public static void queueCommandToSelectedConnection(String command) {
 		if (selectedClientConnection == null) {
-			JOptionPane.showMessageDialog(null, "<html>No computer selected!<br>Please select a computer before performing an action.</html>", "No computer selected!", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null,
+					"<html>No computer selected!"
+					+ "<br>Please select a computer "
+					+ "before performing an action.</html>",
+					"No computer selected!", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		selectedClientConnection.queueCommand(command);
+		queueCommandToSelectedConnectionDirect(command);
 	}
 	public static String getSelectedIpAddress() {
 		if (selectedClientConnection == null) {
-			JOptionPane.showMessageDialog(null, "<html>No computer selected!<br>Please select a computer before performing an action.</html>", "No computer selected!", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null, "<html>No computer selected!"
+					+ "<br>Please select a computer "
+					+ "before performing an action.</html>",
+					"No computer selected!",
+					JOptionPane.ERROR_MESSAGE);
 			return null;
 		}
 		return selectedClientConnection.getIpAddress();
@@ -73,16 +84,18 @@ public class ClientManager {
 		managerPanel = panel;
 	}
 	public static boolean checkIfClientIsInPanel(String ipAddress) {
-		for (Component c : managerPanel.getComponents()) {
-			if (!(c instanceof ClientPanel))
-				continue;
-			
-			ClientPanel panel = (ClientPanel) c;
-			
-			if (panel.getIpAddress().equals(ipAddress)) {
-				return true;
+		try {
+			for (Component c : managerPanel.getComponents()) {
+				if (!(c instanceof ClientPanel))
+					continue;
+				
+				ClientPanel panel = (ClientPanel) c;
+				
+				if (panel.getIpAddress().equals(ipAddress)) {
+					return true;
+				}
 			}
-		}
+		} catch (Exception e) {}
 		return false;
 	}
 	public static void addClientToPanel(Socket client) {
