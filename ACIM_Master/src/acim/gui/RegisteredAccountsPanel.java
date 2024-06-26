@@ -70,8 +70,6 @@ public class RegisteredAccountsPanel extends JPanel {
 						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
 				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modifyingAccount.getUsername());
 				AccountModifierFrame.updateAccountFrame(tableAccount, modifyingAccount, tableAccount.getSelectedRow(), databaseLineNumber);
-
-				DatabaseManager.DISPLAY_ALL_ACCOUNTS();
 			}
 		});
 		panelAccountActions.add(btnUpdateInformation);
@@ -99,14 +97,29 @@ public class RegisteredAccountsPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				AccountModifierFrame.newAccountFrame(tableAccount);
-				
-				DatabaseManager.DISPLAY_ALL_ACCOUNTS();
 			}
 		});
 		panelAccountActions.add(btnNewAccount);
 		
-		JButton btnPayForHours = new JButton("Pay For Hours");
-		panelAccountActions.add(btnPayForHours);
+		JButton btnPayForMinutes = new JButton("Pay For Minutes");
+		btnPayForMinutes.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String input = JOptionPane.showInputDialog("How many minutes?");
+				if (input == null)
+					return;
+				long minutes = Long.parseLong(input);
+
+				Account modify = DatabaseManager.getAccountByUsername(
+						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
+				modify.setAvailableMinutes(modify.getAvailableMinutes() + minutes);
+				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modify.getUsername());
+				
+				DatabaseManager.updateDatabaseLine(databaseLineNumber, modify);
+				DatabaseManager.updateAccountTable();
+			}
+		});
+		panelAccountActions.add(btnPayForMinutes);
 		
 		JButton btnDeleteAccount = new JButton("Delete Account");
 		btnDeleteAccount.addActionListener(new ActionListener() {
@@ -125,8 +138,6 @@ public class RegisteredAccountsPanel extends JPanel {
 				DatabaseManager.removeDatabaseLine(databaseLineNumber);
 				DatabaseManager.removeAccount(modifyingAccount);
 				tableModel.removeRow(tableAccount.getSelectedRow());
-
-				DatabaseManager.DISPLAY_ALL_ACCOUNTS();
 			}
 		});
 		panelAccountActions.add(btnDeleteAccount);

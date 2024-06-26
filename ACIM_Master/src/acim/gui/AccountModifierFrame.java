@@ -115,10 +115,10 @@ public class AccountModifierFrame extends JFrame {
 		btnProceed.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Account newAccount = new Account(txtUsername.getText(),
-						new String(txtPassword.getPassword()), txtFirstName.getText(),
+				Account newAccount = new Account(txtUsername.getText(), null, txtFirstName.getText(),
 						txtLastName.getText(), txtEmail.getText(),
 						txtPhoneNumber.getText(), txtNotes.getText());
+				newAccount.setPassword(new String(txtPassword.getPassword()));
 				DatabaseManager.createNewAccount(newAccount);
 
 				DefaultTableModel model = (DefaultTableModel) table.getModel();
@@ -135,7 +135,6 @@ public class AccountModifierFrame extends JFrame {
 						txtNotes.getText()
 				});
 
-				DatabaseManager.DISPLAY_ALL_ACCOUNTS();
 				dispose();
 			}
 		});
@@ -176,8 +175,7 @@ public class AccountModifierFrame extends JFrame {
 				model.setValueAt(txtNotes.getText(), selectedRow, 9);
 				
 				DatabaseManager.updateDatabaseLine(databaseLineNumber, modify);
-
-				DatabaseManager.DISPLAY_ALL_ACCOUNTS();
+				
 				dispose();
 			}
 		});

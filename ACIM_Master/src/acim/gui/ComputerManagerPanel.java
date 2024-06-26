@@ -52,7 +52,6 @@ public class ComputerManagerPanel extends JPanel {
 
 				String msg = JOptionPane.showInputDialog(thisPanel, "Enter a message for " + ipAddress + ".");
 				ClientManager.queueCommandToSelectedConnection("message " + msg);
-				System.out.println("Message: " + msg);
 			}
 		});
 		panelComputerControl.add(btnMessage);
@@ -136,6 +135,7 @@ public class ComputerManagerPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				ClientManager.queueCommandToSelectedConnection("kickout");
+				ClientManager.setClientPanelStatus(ClientManager.getSelectedIpAddress(), ClientPanel.Status.ACTIVE);
 			}
 		});
 		panelComputerControl.add(btnKickOut);

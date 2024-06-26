@@ -33,7 +33,7 @@ public class DatabaseManager {
 				split[0], split[1], split[2], split[3], split[4], split[5], split[9]
 			);
 			readAccount.setLastLogin(Long.parseLong(split[7]));
-			readAccount.setBalance(Float.parseFloat(split[6]));
+			readAccount.setAvailableMinutes(Long.parseLong(split[6]));
 			readAccount.setTotalHours(Float.parseFloat(split[8]));
 			accountList.add(readAccount);
 		}
@@ -57,7 +57,7 @@ public class DatabaseManager {
 					account.getLastName(),
 					account.getEmail(),
 					account.getPhoneNumber(),
-					"" + account.getBalance(),
+					"" + account.getAvailableMinutes(),
 					account.getLastLoginFormattedString(),
 					"" + account.getTotalHours(),
 					account.getNotes()
@@ -78,12 +78,12 @@ public class DatabaseManager {
 	
 	private static String serializeAccount(Account account) {
 		return account.getUsername() + DB_SEPARATOR +
-				account.getPasswordHash() + DB_SEPARATOR +
+				account.getEncodedPassword() + DB_SEPARATOR +
 				account.getFirstName() + DB_SEPARATOR +
 				account.getLastName() + DB_SEPARATOR +
 				account.getEmail() + DB_SEPARATOR +
 				account.getPhoneNumber() + DB_SEPARATOR +
-				account.getBalance() + DB_SEPARATOR +
+				account.getAvailableMinutes() + DB_SEPARATOR +
 				account.getLastLogin() + DB_SEPARATOR +
 				account.getTotalHours() + DB_SEPARATOR +
 				account.getNotes();
@@ -97,7 +97,8 @@ public class DatabaseManager {
 			Files.write(Paths.get("Accounts.txt"), (serializeAccount(account) + "\r\n"
 			).getBytes(), StandardOpenOption.APPEND);
 		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "File write error: " + e.getLocalizedMessage(), "IOException", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null, "File write error: " + e.getLocalizedMessage(),
+					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
 		System.out.println(account);
@@ -113,7 +114,8 @@ public class DatabaseManager {
 				}
 			}
 		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "File read error: " + e.getLocalizedMessage(), "IOException", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null, "File read error: " + e.getLocalizedMessage(),
+					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
 		return -1;
@@ -123,10 +125,12 @@ public class DatabaseManager {
 		try {
 			// Get the contents of the file as an ArrayList.
 			ArrayList<String> content = new ArrayList<String>(Files.readAllLines(Paths.get("Accounts.txt")));
-			content.set(lineNumber, serializeAccount(account));
+			if (lineNumber != -1)
+				content.set(lineNumber, serializeAccount(account));
 			Files.write(Paths.get("Accounts.txt"), content);
 		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "File read error: " + e.getLocalizedMessage(), "IOException", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null, "File read error: " + e.getLocalizedMessage(),
+					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
 	}
@@ -138,15 +142,10 @@ public class DatabaseManager {
 			content.remove(lineNumber);
 			Files.write(Paths.get("Accounts.txt"), content);
 		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "File read error: " + e.getLocalizedMessage(), "IOException", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null, "File read error: " + e.getLocalizedMessage(),
+					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
 	}
 	
-	public static void DISPLAY_ALL_ACCOUNTS() {
-		System.out.println("DISPLAYING_ALL_ACCOUNTS");
-		for (Account a : accountList) {
-			System.out.println(a.toString());
-		}
-	}
 }

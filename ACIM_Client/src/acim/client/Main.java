@@ -13,15 +13,15 @@ public class Main {
 			public void run() {
 				try {
 					UIManager.setLookAndFeel(new FlatDarkLaf());
-					
+
+					LockFrame frame = new LockFrame();
 					Socket socket = ServerConnectionManager.askForTargetSocket();
-					ConnectionThread connThread = new ConnectionThread(socket);
+					ConnectionThread connThread = new ConnectionThread(socket, frame);
 					connThread.start();
 					
-					LockFrame frame = new LockFrame();
 					frame.setVisible(true);
 					
-					PersistenceThread thread = new PersistenceThread(frame);
+					//PersistenceThread thread = new PersistenceThread(frame);
 					//thread.start();
 				} catch (Exception e) {
 					e.printStackTrace();

@@ -9,6 +9,9 @@ import java.util.*;
 import javax.imageio.*;
 import javax.swing.*;
 
+import acim.data.*;
+import acim.gui.ClientPanel;
+
 /**
  * This code deals with individual clients that are connected to the server.
  */
@@ -23,6 +26,7 @@ public class ClientConnection {
 	
 	private InputThread inThread;
 	private OutputThread outThread;
+	private UsageMonitoringThread usageThread = null;
 	
 	private Queue<String> commandQueue;
 
@@ -139,6 +143,25 @@ public class ClientConnection {
 						JOptionPane.showMessageDialog(null, "<html>" + input.replaceFirst("message ", "") + "</html>",
 								"Client (" + ipAddress + ":" + port + ") has a message for you!",
 								JOptionPane.INFORMATION_MESSAGE);
+					} else if (input.startsWith("login ")) {
+						String[] stringArray = input.split(" ");
+						String clientUsername = stringArray[1];
+						String clientEncodedPassword = stringArray[2];
+
+						Account account = DatabaseManager.getAccountByUsername(clientUsername);
+						if (account == null) {
+							queueCommand("login fail No account exists with that username.");
+						} else if (!account.getEncodedPassword().equals(clientEncodedPassword)) {
+							queueCommand("login fail Invalid password.");
+						} else if (account.getAvailableMinutes() == 0.0f) {
+							queueCommand("login fail Account balance is empty.");
+						} else {	
+							queueCommand("allow access");
+							ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.IN_USE);
+							
+							usageThread = new UsageMonitoringThread(1, account);
+							usageThread.start();
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -163,10 +186,37 @@ public class ClientConnection {
 				// Empty all queued commands.
 				while (!commandQueue.isEmpty()) {
 					String command = commandQueue.poll();
+					if (command.equals("kickout") && usageThread != null) {
+						usageThread.interrupt();
+					}
 					writer.println(command + "\r");
 				}
 				writer.flush();
 			}
+		}
+	}
+
+	private class UsageMonitoringThread extends Thread {
+		private Account account;
+		private UsageMonitoringThread(long usageDuration, Account account) {
+			this.account = account;
+		}
+		
+		@Override
+		public void run() {
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {}
+			
+			queueCommand("kickout");
+			ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.ACTIVE);
+			account.setAvailableMinutes(0);
+			DatabaseManager.updateDatabaseLine(
+					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
+					account);
+			DatabaseManager.updateAccountTable();
+			
+			usageThread = null;
 		}
 	}
 }

@@ -5,23 +5,24 @@ import java.text.*;
 
 public class Account {
 	private String username;
-	private String passwordHash;
+	private String encodedPassword;
 	private String firstName, lastName, email, phoneNumber, notes;
 	
 	private long lastLogin; // Unix timestamp
 	private float totalHours;
-	private float balance;
+	private long availableMinutes;
 	
 	private Account() {}
 	
-	public Account(String username, String password,
+	public Account(String username, String encodedPassword,
 					String firstName, String lastName, String email,
 					String phoneNumber, String notes) {
 		updateLastLoginToNow();
-		totalHours = balance = 0.0f;
+		totalHours = 0.0f;
+		availableMinutes = 0;
 		
 		this.username = username;
-		setPassword(password);
+		this.encodedPassword = encodedPassword;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.email = email;
@@ -34,16 +35,17 @@ public class Account {
 		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 		return sdf.format(date);
 	}
-	// TODO: Do not store passwords like THIS!
-	public void setPassword(String password) { this.passwordHash = password; }
-
+	public void setPassword(String password) {
+		Base64.Encoder encoder = Base64.getUrlEncoder();
+		this.encodedPassword = encoder.encodeToString(password.getBytes());
+	}
 	
 	public void updateLastLoginToNow() {
 		lastLogin = Instant.now(Clock.systemUTC()).getEpochSecond();
 	}
 	
 	public String getUsername() { return username; }
-	public String getPasswordHash() { return passwordHash; }
+	public String getEncodedPassword() { return encodedPassword; }
 	public String getFirstName() { return firstName; }
 	public String getLastName() { return lastName; }
 	public String getEmail() { return email; }
@@ -51,7 +53,7 @@ public class Account {
 	public String getNotes() { return notes; }
 	public long getLastLogin() { return lastLogin; }
 	public float getTotalHours() { return totalHours; }
-	public float getBalance() { return balance; }
+	public long getAvailableMinutes() { return availableMinutes; }
 
 	public void setUsername(String username) { this.username = username; }
 	public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -61,14 +63,14 @@ public class Account {
 	public void setNotes(String notes) { this.notes = notes; }
 	public void setLastLogin(long lastLogin) { this.lastLogin = lastLogin; }
 	public void setTotalHours(float totalHours) { this.totalHours = totalHours; }
-	public void setBalance(float balance) { this.balance = balance; }
+	public void setAvailableMinutes(long availableMinutes) { this.availableMinutes = availableMinutes; }
 
 	@Override
 	public String toString() {
-		return "Account [username=" + username + ", passwordHash=" + passwordHash + ", firstName="
+		return "Account [username=" + username + ", encodedPassword=" + encodedPassword + ", firstName="
 				+ firstName + ", lastName=" + lastName + ", email=" + email + ", phoneNumber=" + phoneNumber
-				+ ", notes=" + notes + ", lastLogin=" + lastLogin + ", totalHours=" + totalHours + ", balance="
-				+ balance + "]";
+				+ ", notes=" + notes + ", lastLogin=" + lastLogin + ", totalHours=" + totalHours + ", availableMinutes="
+				+ availableMinutes + "]";
 	}
 	
 	public String getDialogString() {
@@ -78,7 +80,7 @@ public class Account {
 				"<b>Last Name:</b> " + lastName + "<br>" +
 				"<b>Email:</b> " + email + "<br>" +
 				"<b>Phone Number:</b> " + phoneNumber + "<br><br>" +
-				"<b>Balance:</b> " + balance + "<br><br>" +
+				"<b>Available Minutes:</b> " + availableMinutes + "<br><br>" +
 				"<b>Last Login:</b> " + getLastLoginFormattedString() + "<br>" +
 				"<b>Total Hours:</b> " + totalHours + "<br>" +
 				"<b>Notes:</b> " + notes + "<br></html>";

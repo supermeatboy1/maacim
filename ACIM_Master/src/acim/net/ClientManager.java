@@ -130,6 +130,19 @@ public class ClientManager {
 			}
 		}
 	}
+	public static void setClientPanelStatus(String ipAddress, ClientPanel.Status status) {
+		for (Component c : managerPanel.getComponents()) {
+			if (!(c instanceof ClientPanel))
+				continue;
+			
+			ClientPanel panel = (ClientPanel) c;
+			if (panel.getIpAddress().equals(ipAddress)) {
+				panel.setStatus(status);
+				panel.updateText();
+				return;
+			}
+		}
+	}
 	public static void resetCurrentSelectedClient() {
 		selectedClientConnection = null;
 		

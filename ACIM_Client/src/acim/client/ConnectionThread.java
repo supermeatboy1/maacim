@@ -18,8 +18,9 @@ public class ConnectionThread extends Thread {
 	private int connectionTries = 0;
 	
 	private Queue<String> commandQueue;
+	private LockFrame lockFrame;
 
-	public ConnectionThread(Socket s) throws IOException {
+	public ConnectionThread(Socket s, LockFrame lockFrame) throws IOException {
 		socket = s;
 		addr = (InetSocketAddress) s.getRemoteSocketAddress();
 
@@ -27,6 +28,8 @@ public class ConnectionThread extends Thread {
 		writer = new PrintWriter(socket.getOutputStream(), true);
 
 		commandQueue = new LinkedList<String>();
+		lockFrame.setCommandQueue(commandQueue);
+		this.lockFrame = lockFrame;
 	}
 	
 	public void closeSocket() {
@@ -112,8 +115,22 @@ public class ConnectionThread extends Thread {
 						closeSocket();
 						return;
 					}
-					
-					if (input.startsWith("message ")) {
+
+					if (input.startsWith("login fail ")) {
+						String failMsg = input.replaceFirst("login fail ", "");
+						JOptionPane.showMessageDialog(null,
+								"<html>Failed to login: <br>" + failMsg + "<html>",
+									"Login failed.",
+									JOptionPane.ERROR_MESSAGE);
+					} else if (input.equals("kickout")) {
+						lockFrame.setVisible(true);
+					} else if (input.equals("allow access")) {
+						JOptionPane.showMessageDialog(null,
+								"<html>Login successful!<html>",
+									"Success!",
+									JOptionPane.INFORMATION_MESSAGE);
+						lockFrame.setVisible(false);
+					} else if (input.startsWith("message ")) {
 						String msg = input.replaceFirst("message ", "");
 						JOptionPane.showMessageDialog(null, "<html>Message from server:<br>" + msg + "</html>");
 					} else if (input.equals("shutdown")) {

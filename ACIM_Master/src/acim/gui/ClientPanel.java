@@ -14,12 +14,11 @@ public class ClientPanel extends JPanel {
 	public enum Status {
 		ACTIVE,
 		IN_USE,
-		INACTIVE
 	};
 	public static final Color HIGHLIGHTED_COLOR = new Color(138, 206, 0);
 	
 	private static final long serialVersionUID = 1L;
-	private static ImageIcon iconClientPanelActive, iconClientPanelInUse, iconClientPanelInactive;
+	private static ImageIcon iconClientPanelActive, iconClientPanelInUse;
 	
 	private String ipAddress;
 	private int port;
@@ -32,7 +31,6 @@ public class ClientPanel extends JPanel {
 	private Color defaultTextColor;
 
 	public ClientPanel(String ipAddress, int port, String nickname) {
-
 		ClientPanel thisPanel = this;
 		addMouseListener(new MouseAdapter() {
 			@Override
@@ -58,21 +56,17 @@ public class ClientPanel extends JPanel {
 				iconClientPanelInUse = new ImageIcon(ImageIO.read(
 						getClass().getClassLoader().getResourceAsStream("computer_in_use.png")
 					));
-			if (iconClientPanelInactive == null)
-				iconClientPanelInactive = new ImageIcon(ImageIO.read(
-						getClass().getClassLoader().getResourceAsStream("computer_inactive.png")
-					));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		lblText = new JLabel(iconClientPanelInactive);
+		lblText = new JLabel(iconClientPanelActive);
 		add(lblText, BorderLayout.CENTER);
 
 		this.ipAddress = ipAddress;
 		this.port = port;
 		this.nickname = nickname;
-		this.status = Status.INACTIVE;
+		this.status = Status.ACTIVE;
 
 		updateText();
 
@@ -82,19 +76,17 @@ public class ClientPanel extends JPanel {
 
 	public void updateText() {
 		if (isLocalClientPanel)
-			lblText.setText("<html><b>(This computer)<br>" + nickname + "</b><br>" + ipAddress + ":" + 6969 + "<br>Active</html>");
+			lblText.setText("<html><b>(This computer)<br>" + nickname + "</b><br>" + ipAddress + ":" + 6969 + "<br>ACTIVE</html>");
 		else
 			lblText.setText("<html><b>" + nickname + "</b><br>" + ipAddress + ":" + port + "<br>" + status + "</html>");
 
 		switch (status) {
-		case ACTIVE:
-			lblText.setIcon(iconClientPanelActive);
-			break;
 		case IN_USE:
 			lblText.setIcon(iconClientPanelInUse);
 			break;
 		default:
-			lblText.setIcon(iconClientPanelInactive);
+			lblText.setIcon(iconClientPanelActive);
+			break;
 		}
 	}
 	public void resetColors() {
