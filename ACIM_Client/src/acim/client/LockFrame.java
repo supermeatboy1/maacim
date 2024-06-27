@@ -15,7 +15,6 @@ public class LockFrame extends JFrame {
 		super();
 
 		JPanel contentPane = new JPanel();
-		//Dimension size = new Dimension(640, 480); // Toolkit.getDefaultToolkit().getScreenSize();
 		Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
 
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -51,6 +50,9 @@ public class LockFrame extends JFrame {
 		getContentPane().add(contentPane, BorderLayout.CENTER);
 		JPanel internal = new LoginPanel();
 		contentPane.add(internal);
+		
+		// https://stackoverflow.com/a/17237207
+		setUndecorated(true);
 		pack();
 		
 		setResizable(false);

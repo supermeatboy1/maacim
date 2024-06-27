@@ -22,7 +22,7 @@ public class RegisteredAccountsPanel extends JPanel {
 		splitPaneAccountManager.setResizeWeight(0.85);
 		add(splitPaneAccountManager);
 		
-		String column[] = {"Username", "Password", "First Name", "Last Name", "Email", "Phone Number", "Balance", "Last Login", "Total Hours", "Notes"};
+		String column[] = {"Username", "Password", "First Name", "Last Name", "Email", "Phone Number", "Available Seconds", "Last Login", "Total Hours", "Notes"};
 		String data[][] = {};
 		tableAccount = new JTable();
 		tableAccount.setModel(new DefaultTableModel(data, column) {
@@ -37,9 +37,10 @@ public class RegisteredAccountsPanel extends JPanel {
 		columnModel.getColumn(0).setPreferredWidth(40);
 		columnModel.getColumn(1).setPreferredWidth(40);
 		columnModel.getColumn(4).setPreferredWidth(40);
-		columnModel.getColumn(6).setPreferredWidth(40);
-		columnModel.getColumn(7).setPreferredWidth(140);
+		columnModel.getColumn(5).setPreferredWidth(70);
+		columnModel.getColumn(7).setPreferredWidth(100);
 		columnModel.getColumn(8).setPreferredWidth(40);
+		columnModel.getColumn(9).setPreferredWidth(100);
 		tableAccount.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 		DatabaseManager.setAccountTable(tableAccount);
 		DatabaseManager.updateAccountTable();
@@ -108,11 +109,15 @@ public class RegisteredAccountsPanel extends JPanel {
 				String input = JOptionPane.showInputDialog("How many minutes?");
 				if (input == null)
 					return;
-				long minutes = Long.parseLong(input);
+				
+				long minutes = 0;
+				try {
+					minutes = Long.parseLong(input);
+				} catch (NumberFormatException ne) { return; }
 
 				Account modify = DatabaseManager.getAccountByUsername(
 						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
-				modify.setAvailableMinutes(modify.getAvailableMinutes() + minutes);
+				modify.setAvailableSeconds(modify.getAvailableSeconds() + minutes);
 				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modify.getUsername());
 				
 				DatabaseManager.updateDatabaseLine(databaseLineNumber, modify);

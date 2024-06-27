@@ -33,7 +33,7 @@ public class DatabaseManager {
 				split[0], split[1], split[2], split[3], split[4], split[5], split[9]
 			);
 			readAccount.setLastLogin(Long.parseLong(split[7]));
-			readAccount.setAvailableMinutes(Long.parseLong(split[6]));
+			readAccount.setAvailableSeconds(Long.parseLong(split[6]));
 			readAccount.setTotalHours(Float.parseFloat(split[8]));
 			accountList.add(readAccount);
 		}
@@ -57,7 +57,7 @@ public class DatabaseManager {
 					account.getLastName(),
 					account.getEmail(),
 					account.getPhoneNumber(),
-					"" + account.getAvailableMinutes(),
+					"" + account.getAvailableSeconds(),
 					account.getLastLoginFormattedString(),
 					"" + account.getTotalHours(),
 					account.getNotes()
@@ -83,7 +83,7 @@ public class DatabaseManager {
 				account.getLastName() + DB_SEPARATOR +
 				account.getEmail() + DB_SEPARATOR +
 				account.getPhoneNumber() + DB_SEPARATOR +
-				account.getAvailableMinutes() + DB_SEPARATOR +
+				account.getAvailableSeconds() + DB_SEPARATOR +
 				account.getLastLogin() + DB_SEPARATOR +
 				account.getTotalHours() + DB_SEPARATOR +
 				account.getNotes();

@@ -4,6 +4,7 @@ import java.awt.*;
 import java.net.*;
 
 import javax.swing.*;
+import javax.swing.border.*;
 
 import acim.net.*;
 
@@ -40,6 +41,7 @@ public class ClientPanel extends JPanel {
 				if (!isLocalClientPanel) {
 					setBackground(HIGHLIGHTED_COLOR);
 					lblText.setForeground(Color.DARK_GRAY);
+					setBorder(new BevelBorder(BevelBorder.LOWERED));
 					
 					ClientManager.setSelectedClientConnection(thisPanel);
 				}
@@ -92,6 +94,7 @@ public class ClientPanel extends JPanel {
 	public void resetColors() {
 		setBackground(defaultBackgroundColor);
 		lblText.setForeground(defaultTextColor);
+		setBorder(new EmptyBorder(0, 0, 0, 0));
 	}
 
 	public void setStatus(Status status) {

@@ -10,7 +10,7 @@ import javax.imageio.*;
 import javax.swing.*;
 
 import acim.data.*;
-import acim.gui.ClientPanel;
+import acim.gui.*;
 
 /**
  * This code deals with individual clients that are connected to the server.
@@ -19,7 +19,7 @@ public class ClientConnection {
 	private Socket client;
 
 	private BufferedReader reader;
-	private PrintWriter writer;
+	private BufferedWriter writer;
 	
 	private String ipAddress;
 	private int port;
@@ -37,7 +37,7 @@ public class ClientConnection {
 		this.client = client;
 
 		reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		writer = new PrintWriter(client.getOutputStream());
+		writer = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()));
 		
 		ipAddress = client.getInetAddress().getHostAddress();
 		port = client.getPort();
@@ -76,6 +76,11 @@ public class ClientConnection {
 			closeConnection();
 			ClientManager.removeClientConnection(this);
 			System.out.println("Client disconnected: " + client.getInetAddress().getHostAddress() + ":" + client.getPort());
+			
+			// Make sure to interrupt the usage thread.
+			// 
+			if (usageThread != null && !usageThread.isInterrupted())
+				usageThread.interrupt();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -84,16 +89,19 @@ public class ClientConnection {
 	private class InputThread extends Thread {
 		@Override
 		public void run() {
-			writer.println("Welcome to the server!\r");
-			
 			try {
-				while (client.isConnected()) {
-					Thread.sleep(1);
+				writer.write("Welcome to the server!\r\n");
+				while (client.isConnected() && !client.isClosed()) {
+					//Thread.sleep(1);
 					String input = reader.readLine();
 					if (input == null) {
 						close();
 						return;
 					}
+					
+					// Skip blank lines.
+					if (input.isBlank() || input.equals("null"))
+						continue;
 
 					if (input.equals("quit") || input.equals("exit")) {
 						close();
@@ -107,12 +115,14 @@ public class ClientConnection {
 						Base64.Decoder decoder = Base64.getUrlDecoder();
 						
 						while (!complete) {
-							Thread.sleep(1);
 							String line = reader.readLine();
+							
 							if (line.startsWith("chunk length ")) {
 								int chunk_length = Integer.parseInt(line.replaceFirst("chunk length ", ""));
-								byte[] chunk = decoder.decode(reader.readLine());
-								Thread.sleep(1);
+								String chunk_line = "";
+								while (chunk_line.isBlank() || chunk_line.equals("null"))
+									chunk_line = reader.readLine();
+								byte[] chunk = decoder.decode(chunk_line);
 								baos.write(chunk, 0, chunk_length);
 							} else if (line.startsWith("stop receive screenshot")) {
 								complete = true;
@@ -126,16 +136,7 @@ public class ClientConnection {
 						
 						SwingUtilities.invokeLater(new Runnable() {
 							public void run() {
-								JFrame screenshotFrame = new JFrame("[Screenshot] " + date_time_str);
-								JPanel panel = new JPanel();
-								panel.add(new JLabel(new ImageIcon(screenshot)));
-
-								screenshotFrame.setLocationRelativeTo(null);
-								screenshotFrame.add(panel);
-								screenshotFrame.pack();
-								screenshotFrame.setResizable(false);
-								screenshotFrame.setVisible(true);
-								screenshotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+								new PictureViewerFrame(screenshot, "[Screenshot] " + date_time_str).setVisible(true);
 							}
 						});
 					} else if (input.startsWith("message ")) {
@@ -153,18 +154,20 @@ public class ClientConnection {
 							queueCommand("login fail No account exists with that username.");
 						} else if (!account.getEncodedPassword().equals(clientEncodedPassword)) {
 							queueCommand("login fail Invalid password.");
-						} else if (account.getAvailableMinutes() == 0.0f) {
+						} else if (account.getAvailableSeconds() == 0) {
 							queueCommand("login fail Account balance is empty.");
 						} else {	
 							queueCommand("allow access");
 							ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.IN_USE);
 							
-							usageThread = new UsageMonitoringThread(1, account);
+							usageThread = new UsageMonitoringThread(account);
 							usageThread.start();
 						}
 					}
 				}
 			} catch (Exception e) {
+				System.out.println("Exception occured in InputThread (" + ipAddress + "): ");
+				e.printStackTrace();
 				close();
 			}
 		}
@@ -173,44 +176,70 @@ public class ClientConnection {
 	private class OutputThread extends Thread {
 		@Override
 		public void run() {
-			while (client.isConnected()) {
-				// Wait until a command is queued.
-				while (commandQueue.isEmpty()) {
-					try {
-						sleep(500);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+			try {
+				while (client.isConnected() && !client.isClosed()) {
+					// Wait until a command is queued.
+					while (commandQueue.isEmpty()) {
+						try {
+							sleep(500);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+
+					// Empty all queued commands.
+					while (!commandQueue.isEmpty()) {
+						String command = commandQueue.poll();
+						if (command.equals("kickout") && usageThread != null) {
+							usageThread.interrupt();
+						}
+						writer.write(command + "\r\n");
+						writer.flush();
 					}
 				}
-				
-				// Empty all queued commands.
-				while (!commandQueue.isEmpty()) {
-					String command = commandQueue.poll();
-					if (command.equals("kickout") && usageThread != null) {
-						usageThread.interrupt();
-					}
-					writer.println(command + "\r");
-				}
-				writer.flush();
+			} catch (Exception e) {
+				System.out.println("Exception occured in OutputThread (" + ipAddress + "): ");
+				e.printStackTrace();
 			}
 		}
 	}
 
 	private class UsageMonitoringThread extends Thread {
 		private Account account;
-		private UsageMonitoringThread(long usageDuration, Account account) {
+		private long startMillis = 0;
+		private UsageMonitoringThread(Account account) {
 			this.account = account;
+			
+			startMillis = System.currentTimeMillis();
 		}
 		
 		@Override
 		public void run() {
+			boolean interrupted = false;
+			
 			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e) {}
+				Thread.sleep(account.getAvailableSeconds() * 1000);
+			} catch (InterruptedException e) {
+				interrupted = true;
+				
+				// Deduct the available seconds for an account based on the time elapsed.
+				long secondsDeduction = ((System.currentTimeMillis() - startMillis) / 1000);
+				
+				account.setAvailableSeconds(
+						account.getAvailableSeconds() - secondsDeduction
+					);
+				
+				// Prevent negative seconds balance.
+				if (account.getAvailableSeconds() < 0)
+					account.setAvailableSeconds(0);
+			}
 			
 			queueCommand("kickout");
 			ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.ACTIVE);
-			account.setAvailableMinutes(0);
+			
+			if (!interrupted)
+				account.setAvailableSeconds(0);
+			
 			DatabaseManager.updateDatabaseLine(
 					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
 					account);

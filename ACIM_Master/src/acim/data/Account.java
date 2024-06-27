@@ -10,7 +10,7 @@ public class Account {
 	
 	private long lastLogin; // Unix timestamp
 	private float totalHours;
-	private long availableMinutes;
+	private long availableSeconds;
 	
 	private Account() {}
 	
@@ -19,7 +19,7 @@ public class Account {
 					String phoneNumber, String notes) {
 		updateLastLoginToNow();
 		totalHours = 0.0f;
-		availableMinutes = 0;
+		availableSeconds = 0;
 		
 		this.username = username;
 		this.encodedPassword = encodedPassword;
@@ -53,7 +53,7 @@ public class Account {
 	public String getNotes() { return notes; }
 	public long getLastLogin() { return lastLogin; }
 	public float getTotalHours() { return totalHours; }
-	public long getAvailableMinutes() { return availableMinutes; }
+	public long getAvailableSeconds() { return availableSeconds; }
 
 	public void setUsername(String username) { this.username = username; }
 	public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -63,14 +63,14 @@ public class Account {
 	public void setNotes(String notes) { this.notes = notes; }
 	public void setLastLogin(long lastLogin) { this.lastLogin = lastLogin; }
 	public void setTotalHours(float totalHours) { this.totalHours = totalHours; }
-	public void setAvailableMinutes(long availableMinutes) { this.availableMinutes = availableMinutes; }
+	public void setAvailableSeconds(long availableSeconds) { this.availableSeconds = availableSeconds; }
 
 	@Override
 	public String toString() {
 		return "Account [username=" + username + ", encodedPassword=" + encodedPassword + ", firstName="
 				+ firstName + ", lastName=" + lastName + ", email=" + email + ", phoneNumber=" + phoneNumber
-				+ ", notes=" + notes + ", lastLogin=" + lastLogin + ", totalHours=" + totalHours + ", availableMinutes="
-				+ availableMinutes + "]";
+				+ ", notes=" + notes + ", lastLogin=" + lastLogin + ", totalHours=" + totalHours + ", availableSeconds="
+				+ availableSeconds + "]";
 	}
 	
 	public String getDialogString() {
@@ -80,7 +80,7 @@ public class Account {
 				"<b>Last Name:</b> " + lastName + "<br>" +
 				"<b>Email:</b> " + email + "<br>" +
 				"<b>Phone Number:</b> " + phoneNumber + "<br><br>" +
-				"<b>Available Minutes:</b> " + availableMinutes + "<br><br>" +
+				"<b>Available Seconds:</b> " + availableSeconds + "<br><br>" +
 				"<b>Last Login:</b> " + getLastLoginFormattedString() + "<br>" +
 				"<b>Total Hours:</b> " + totalHours + "<br>" +
 				"<b>Notes:</b> " + notes + "<br></html>";

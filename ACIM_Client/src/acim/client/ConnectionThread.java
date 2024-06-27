@@ -12,7 +12,7 @@ public class ConnectionThread extends Thread {
 	private Socket socket;
 	private InetSocketAddress addr;
 	private BufferedReader reader;
-	private PrintWriter writer;
+	private BufferedWriter writer;
 
 	private boolean running = false;
 	private int connectionTries = 0;
@@ -25,7 +25,7 @@ public class ConnectionThread extends Thread {
 		addr = (InetSocketAddress) s.getRemoteSocketAddress();
 
 		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		writer = new PrintWriter(socket.getOutputStream(), true);
+		writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 		commandQueue = new LinkedList<String>();
 		lockFrame.setCommandQueue(commandQueue);
@@ -90,7 +90,7 @@ public class ConnectionThread extends Thread {
 						socket = new Socket(addr.getAddress().getHostAddress(), addr.getPort());
 
 						reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-						writer = new PrintWriter(socket.getOutputStream(), true);
+						writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 						
 						reconnectionSuccess = true;
 						
@@ -107,8 +107,7 @@ public class ConnectionThread extends Thread {
 		@Override
 		public void run() {
 			try {
-				while (socket.isConnected()) {
-					Thread.sleep(1);
+				while (socket.isConnected() && !socket.isClosed()) {
 					String input = reader.readLine();
 					if (input == null) {
 						System.out.println("Input from server is null");
@@ -157,7 +156,6 @@ public class ConnectionThread extends Thread {
 						
 						try {
 							while (!complete) {
-								Thread.sleep(1);
 								String line = reader.readLine();
 								if (line.startsWith("cancel sending file")) {
 									complete = true;
@@ -174,7 +172,6 @@ public class ConnectionThread extends Thread {
 								} else if (line.startsWith("chunk length ")) {
 									int chunk_length = Integer.parseInt(line.replaceFirst("chunk length ", ""));
 									byte[] chunk = decoder.decode(reader.readLine());
-									Thread.sleep(1);
 									fos.write(chunk, 0, chunk_length);
 								}
 							}
@@ -197,6 +194,7 @@ public class ConnectionThread extends Thread {
 					}
 				}
 			} catch (Exception e) {
+				System.out.println("Exception occured in InputThread: ");
 				e.printStackTrace();
 				closeSocket();
 			}
@@ -206,20 +204,25 @@ public class ConnectionThread extends Thread {
 	private class OutputThread extends Thread {
 		@Override
 		public void run() {
-			while (socket.isConnected()) {
-				// Wait until a command is queued.
-				try {
-					sleep(500);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			try {
+				while (socket.isConnected() && !socket.isClosed()) {
+					// Wait until a command is queued.
+					try {
+						sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 
-				// Empty all queued commands
-				while (!commandQueue.isEmpty()) {
-					String command = commandQueue.poll();
-					writer.println(command + "\r");
+					// Empty all queued commands
+					while (!commandQueue.isEmpty()) {
+						String command = commandQueue.poll();
+						writer.write(command + "\r\n");
+						writer.flush();
+					}
 				}
-				writer.flush();
+			} catch (Exception e) {
+				System.out.println("Exception occured in OutputThread: ");
+				e.printStackTrace();
 			}
 		}
 	}
