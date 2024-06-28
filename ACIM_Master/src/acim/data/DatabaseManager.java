@@ -7,11 +7,15 @@ import javax.swing.*;
 import javax.swing.table.*;
 
 public class DatabaseManager {
+	private static final long TABLE_UPDATE_MILLISECONDS_LIMIT = 1000;
+	
 	private static ArrayList<Account> accountList;
 	private static String DB_SEPARATOR = "\uE000";
 
 	private static JTable tableAccounts = null;
 	private static DefaultTableModel tableModel = null;
+	
+	private static long lastTableUpdateMillis = 0;
 	
 	public static void loadAccountList() throws IOException {
 		File file = new File("Accounts.txt");
@@ -45,24 +49,50 @@ public class DatabaseManager {
 		tableModel = (DefaultTableModel) tableAccounts.getModel();
 	}
 	
+	public static DefaultTableModel getAccountTableModel() { return tableModel; }
+	
 	public static void updateAccountTable() {
-		while (tableModel.getRowCount() > 0)
-			tableModel.removeRow(0);
+		if (System.currentTimeMillis() - lastTableUpdateMillis < TABLE_UPDATE_MILLISECONDS_LIMIT)
+			return;
 		
-		for (Account account : accountList) {
-			tableModel.addRow(new String[] {
-					account.getUsername(),
-					"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", // Dots to censor password
-					account.getFirstName(),
-					account.getLastName(),
-					account.getEmail(),
-					account.getPhoneNumber(),
-					"" + account.getAvailableSeconds(),
-					account.getLastLoginFormattedString(),
-					"" + account.getTotalHours(),
-					account.getNotes()
-				});
-		}
+		// To fix JTable flickering...
+		// https://forums.oracle.com/ords/apexds/post/jtable-flickering-when-updated-4725
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				// Save the current selected row.
+				int selectedRow = tableAccounts.getSelectedRow();
+				
+				while (tableModel.getRowCount() > 0)
+					tableModel.removeRow(0);
+				
+				for (Account account : accountList) {
+					tableModel.addRow(new String[] {
+							account.getUsername(),
+							"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", // Dots to censor password
+							account.getFirstName(),
+							account.getLastName(),
+							account.getEmail(),
+							account.getPhoneNumber(),
+							"" + account.getAvailableSeconds(),
+							account.getLastLoginFormattedString(),
+							"" + account.getTotalHours(),
+							account.getNotes()
+						});
+				}
+				
+				// 
+				if (selectedRow != -1) {
+					try {
+						tableAccounts.setRowSelectionInterval(selectedRow, selectedRow);
+					} catch (Exception e) {
+						// Ignore "row selection out of range" errors.
+					}
+				}
+			}
+		});
+		
+		lastTableUpdateMillis = System.currentTimeMillis();
 	}
 
 	public static Account getAccountByUsername(String username) {
@@ -101,7 +131,6 @@ public class DatabaseManager {
 					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
-		System.out.println(account);
 	}
 
 	public static int getLineNumberFromUsername(String username) {

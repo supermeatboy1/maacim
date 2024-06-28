@@ -24,8 +24,9 @@ public class ClientManager {
 	}
 	public static void addClient(Socket client) throws IOException {
 		// Reject duplicate client connections...
-		if (checkIfClientIsInPanel(client.getInetAddress().getHostAddress())) {
+		if (getPanelFromIpAddress(client.getInetAddress().getHostAddress()) != null) {
 			client.close();
+			return;
 		}
 
 		ClientConnection conn = new ClientConnection(client);
@@ -78,31 +79,47 @@ public class ClientManager {
 		}
 		return selectedClientConnection.getIpAddress();
 	}
+	public static ClientConnection getConnectionFromUsername(String username) {
+		for (ClientConnection connection : clientConnections) {
+			if (connection.getCurrentUser() != null &&
+					connection.getCurrentUser().equals(username)) {
+				return connection;
+			}
+		}
+		return null;
+	}
+	
+	// ********************************************************************************************************
 	
 	// Functions that modify the GUI.
 	public static void setManagerPanel(JPanel panel) {
 		managerPanel = panel;
 	}
-	public static boolean checkIfClientIsInPanel(String ipAddress) {
-		try {
-			for (Component c : managerPanel.getComponents()) {
-				if (!(c instanceof ClientPanel))
-					continue;
-				
-				ClientPanel panel = (ClientPanel) c;
-				
-				if (panel.getIpAddress().equals(ipAddress)) {
-					return true;
-				}
-			}
-		} catch (Exception e) {}
-		return false;
+	public static ClientPanel getPanelFromUser(String username) {
+		for (Component c : managerPanel.getComponents()) {
+			if (!(c instanceof ClientPanel))
+				continue;
+			ClientPanel panel = (ClientPanel) c;
+			if (panel.getCurrentUser() != null && panel.getCurrentUser().equals(username))
+				return panel;
+		}
+		return null;
+	}
+	public static ClientPanel getPanelFromIpAddress(String ipAddress) {
+		for (Component c : managerPanel.getComponents()) {
+			if (!(c instanceof ClientPanel))
+				continue;
+			ClientPanel panel = (ClientPanel) c;
+			if (panel.getIpAddress() != null && panel.getIpAddress().equals(ipAddress))
+				return panel;
+		}
+		return null;
 	}
 	public static void addClientToPanel(Socket client) {
 		addClientToPanel(client, ClientPanel.Status.ACTIVE);
 	}
 	public static void addClientToPanel(Socket client, ClientPanel.Status status) {
-		if (!checkIfClientIsInPanel(client.getInetAddress().getHostAddress())) {
+		if (getPanelFromIpAddress(client.getInetAddress().getHostAddress()) == null) {
 			ClientPanel panel = ClientPanel.createPanel(client);
 			panel.setStatus(status);
 			panel.updateText();
@@ -112,7 +129,6 @@ public class ClientManager {
 			managerPanel.revalidate();
 			managerPanel.repaint();
 		}
-		
 	}
 	public static void removeClientFromPanel(String ipAddress) {
 		for (Component c : managerPanel.getComponents()) {
@@ -127,6 +143,19 @@ public class ClientManager {
 				// https://stackoverflow.com/a/43267593
 				managerPanel.revalidate();
 				managerPanel.repaint();
+			}
+		}
+	}
+	public static void setClientPanelCurrentUser(String ipAddress, String user) {
+		for (Component c : managerPanel.getComponents()) {
+			if (!(c instanceof ClientPanel))
+				continue;
+			
+			ClientPanel panel = (ClientPanel) c;
+			if (panel.getIpAddress().equals(ipAddress)) {
+				panel.setCurrentUser(user);
+				panel.updateText();
+				return;
 			}
 		}
 	}

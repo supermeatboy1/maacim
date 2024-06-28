@@ -7,7 +7,7 @@ import java.util.*;
 import javax.swing.*;
 
 public class ConnectionThread extends Thread {
-	public static final int MAXIMUM_RECONNECTION_TRIES = 30;
+	public static final int MAXIMUM_RECONNECTION_TRIES = 60;
 	
 	private Socket socket;
 	private InetSocketAddress addr;
@@ -18,9 +18,8 @@ public class ConnectionThread extends Thread {
 	private int connectionTries = 0;
 	
 	private Queue<String> commandQueue;
-	private LockFrame lockFrame;
 
-	public ConnectionThread(Socket s, LockFrame lockFrame) throws IOException {
+	public ConnectionThread(Socket s) throws IOException {
 		socket = s;
 		addr = (InetSocketAddress) s.getRemoteSocketAddress();
 
@@ -28,14 +27,17 @@ public class ConnectionThread extends Thread {
 		writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 		commandQueue = new LinkedList<String>();
-		lockFrame.setCommandQueue(commandQueue);
-		this.lockFrame = lockFrame;
+		LockFrame.setCommandQueue(commandQueue);
 	}
 	
 	public void closeSocket() {
 		try {
-			if (!socket.isClosed())
+			if (!socket.isClosed()) {
+				UsageMonitorFrame.hideFrame();
+				UsageMonitorFrame.interruptUpdateThread();
+				LockFrame.showFrame();
 				socket.close();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -115,23 +117,39 @@ public class ConnectionThread extends Thread {
 						return;
 					}
 
-					if (input.startsWith("login fail ")) {
+					if (input.startsWith("update available seconds ")) {
+						long newSeconds = Long.parseLong(input.replaceFirst("update available seconds ", ""));
+						UsageMonitorFrame.updateRemainingSeconds(newSeconds);
+					} else if (input.startsWith("login fail ")) {
 						String failMsg = input.replaceFirst("login fail ", "");
 						JOptionPane.showMessageDialog(null,
 								"<html>Failed to login: <br>" + failMsg + "<html>",
 									"Login failed.",
 									JOptionPane.ERROR_MESSAGE);
 					} else if (input.equals("kickout")) {
-						lockFrame.setVisible(true);
-					} else if (input.equals("allow access")) {
-						JOptionPane.showMessageDialog(null,
-								"<html>Login successful!<html>",
-									"Success!",
-									JOptionPane.INFORMATION_MESSAGE);
-						lockFrame.setVisible(false);
+						LockFrame.showFrame();
+						UsageMonitorFrame.hideFrame();
+					} else if (input.startsWith("allow access ")) {
+						SwingUtilities.invokeLater(new Runnable() {
+							@Override
+							public void run() {
+								JOptionPane.showMessageDialog(null,
+										"<html>Login successful!<html>",
+										"Success!",
+										JOptionPane.INFORMATION_MESSAGE);
+							}});
+						LockFrame.hideFrame();
+						UsageMonitorFrame.showFrame();
+						long seconds = Long.parseLong(input.replaceFirst("allow access ", ""));
+						UsageMonitorFrame.createUpdateThread(seconds);
 					} else if (input.startsWith("message ")) {
 						String msg = input.replaceFirst("message ", "");
-						JOptionPane.showMessageDialog(null, "<html>Message from server:<br>" + msg + "</html>");
+						SwingUtilities.invokeLater(new Runnable() {
+							@Override
+							public void run() {
+								JOptionPane.showMessageDialog(null, "<html>Message from server:<br>" + msg + "</html>");
+							}
+						});
 					} else if (input.equals("shutdown")) {
 						try {
 							SystemCloser.shutdown(false);
@@ -167,7 +185,11 @@ public class ConnectionThread extends Thread {
 									complete = true;
 									fos.flush();
 									fos.close();
-									JOptionPane.showMessageDialog(null, "Received file: " + filename);
+									SwingUtilities.invokeLater(new Runnable() {
+										@Override
+										public void run() {
+											JOptionPane.showMessageDialog(null, "Received file: " + filename);
+										}});
 									break;
 								} else if (line.startsWith("chunk length ")) {
 									int chunk_length = Integer.parseInt(line.replaceFirst("chunk length ", ""));
@@ -216,6 +238,9 @@ public class ConnectionThread extends Thread {
 					// Empty all queued commands
 					while (!commandQueue.isEmpty()) {
 						String command = commandQueue.poll();
+						if (command == null)
+							continue;
+						
 						writer.write(command + "\r\n");
 						writer.flush();
 					}

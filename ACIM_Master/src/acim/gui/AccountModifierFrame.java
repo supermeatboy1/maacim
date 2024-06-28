@@ -8,6 +8,8 @@ import javax.swing.border.*;
 import javax.swing.table.*;
 
 import acim.data.*;
+import acim.net.ClientConnection;
+import acim.net.ClientManager;
 
 public class AccountModifierFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -156,6 +158,18 @@ public class AccountModifierFrame extends JFrame {
 		btnProceed.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (txtUsername.getText().isBlank())
+					return;
+					
+				// Check if a computer is currently connected to the user that is selected.
+				ClientConnection connection = ClientManager.getConnectionFromUsername(modify.getUsername());
+				if (connection != null) {
+					connection.setCurrentUser(txtUsername.getText());
+					ClientPanel panel = ClientManager.getPanelFromUser(modify.getUsername());
+					panel.setCurrentUser(txtUsername.getText());
+					panel.updateText();
+				}
+					
 				modify.setUsername(txtUsername.getText());
 				String passStr = new String(txtPassword.getPassword());
 				if (!passStr.isEmpty())

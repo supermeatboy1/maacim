@@ -11,7 +11,7 @@ public class LockFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Queue<String> commandQueue;
 
-	public LockFrame() {
+	private LockFrame() {
 		super();
 
 		JPanel contentPane = new JPanel();
@@ -58,9 +58,6 @@ public class LockFrame extends JFrame {
 		setResizable(false);
 		setLocationRelativeTo(null);
 		setVisible(true);
-	}
-	public void setCommandQueue(Queue<String> queue) {
-		commandQueue = queue;
 	}
 	
 	public class LoginPanel extends JPanel {
@@ -118,5 +115,25 @@ public class LockFrame extends JFrame {
 			});
 			add(btnSubmit);
 		}
+	}
+	
+	private static LockFrame frame;
+	private static PersistenceThread persistThread;
+	public static void initialize() {
+		frame = new LockFrame();
+	}
+	public static void setCommandQueue(Queue<String> queue) {
+		frame.commandQueue = queue;
+	}
+	public static void showFrame() {
+		frame.setVisible(true);
+
+		persistThread = new PersistenceThread(frame);
+		persistThread.start();
+	}
+	public static void hideFrame() {
+		if (persistThread != null)
+			persistThread.stopPersisting();
+		frame.setVisible(false);
 	}
 }

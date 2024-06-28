@@ -7,6 +7,7 @@ import javax.swing.*;
 import javax.swing.table.*;
 
 import acim.data.*;
+import acim.net.*;
 
 public class RegisteredAccountsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -42,6 +43,11 @@ public class RegisteredAccountsPanel extends JPanel {
 		columnModel.getColumn(8).setPreferredWidth(40);
 		columnModel.getColumn(9).setPreferredWidth(100);
 		tableAccount.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+		
+		// Only allow the user to select ONE row in the table.
+		tableAccount.setRowSelectionAllowed(true);
+		tableAccount.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
 		DatabaseManager.setAccountTable(tableAccount);
 		DatabaseManager.updateAccountTable();
 		tableModel = (DefaultTableModel) tableAccount.getModel();
@@ -106,22 +112,40 @@ public class RegisteredAccountsPanel extends JPanel {
 		btnPayForMinutes.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (tableAccount.getSelectedRow() < 0)
+					return;
+				
 				String input = JOptionPane.showInputDialog("How many minutes?");
+				
 				if (input == null)
 					return;
 				
-				long minutes = 0;
+				float minutes = 0;
 				try {
-					minutes = Long.parseLong(input);
+					minutes = Float.parseFloat(input);
 				} catch (NumberFormatException ne) { return; }
 
 				Account modify = DatabaseManager.getAccountByUsername(
 						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
-				modify.setAvailableSeconds(modify.getAvailableSeconds() + minutes);
+				
+				//if (connection != null)
+					// If a user is connected, deduct the account first.
+				//	connection.deductUsage();
+				
+				// Now add it to the balance.
+				modify.setAvailableSeconds((long) (modify.getAvailableSeconds() + (60 * minutes)));
 				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modify.getUsername());
 				
 				DatabaseManager.updateDatabaseLine(databaseLineNumber, modify);
 				DatabaseManager.updateAccountTable();
+
+				// Check if a computer is currently connected to the user that is selected.
+				ClientConnection connection = ClientManager.getConnectionFromUsername(modify.getUsername());
+				if (connection != null) {
+					// Update the seconds counter on the computer that's connected to the user.
+					connection.queueCommand("update available seconds " + modify.getAvailableSeconds());
+					connection.updateUsageSeconds();
+				}
 			}
 		});
 		panelAccountActions.add(btnPayForMinutes);
@@ -143,6 +167,13 @@ public class RegisteredAccountsPanel extends JPanel {
 				DatabaseManager.removeDatabaseLine(databaseLineNumber);
 				DatabaseManager.removeAccount(modifyingAccount);
 				tableModel.removeRow(tableAccount.getSelectedRow());
+
+				// Check if a computer is currently connected to the user that is selected.
+				ClientConnection connection = ClientManager.getConnectionFromUsername(username);
+				if (connection != null) {
+					// Kick out that user since the account is now deleted.
+					connection.kickout();
+				}
 			}
 		});
 		panelAccountActions.add(btnDeleteAccount);

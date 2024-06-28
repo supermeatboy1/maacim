@@ -30,6 +30,7 @@ public class ClientPanel extends JPanel {
 	private JLabel lblText;
 	private Color defaultBackgroundColor;
 	private Color defaultTextColor;
+	private String currentUser = "";
 
 	public ClientPanel(String ipAddress, int port, String nickname) {
 		ClientPanel thisPanel = this;
@@ -78,9 +79,18 @@ public class ClientPanel extends JPanel {
 
 	public void updateText() {
 		if (isLocalClientPanel)
-			lblText.setText("<html><b>(This computer)<br>" + nickname + "</b><br>" + ipAddress + ":" + 6969 + "<br>ACTIVE</html>");
-		else
-			lblText.setText("<html><b>" + nickname + "</b><br>" + ipAddress + ":" + port + "<br>" + status + "</html>");
+			lblText.setText("<html><b>(This computer)<br>" + nickname + "</b><br>IP Address: " + ipAddress + "<br>Port: " + 6969 + "<br>ACTIVE</html>");
+		else {
+			String hold;
+			if (status == Status.ACTIVE) {
+				hold = "<html><b>" + nickname + "</b><br>IP Address: " + ipAddress +
+						"<br>Port: " + port + "<br>" + status + "</html>";
+			} else {
+				hold = "<html><b>" + nickname + "</b><br>IP Address: " + ipAddress +
+						"<br>Port: " + port + "<br>" + status + "<br>Logged In: " + currentUser + "</html>";
+			}
+			lblText.setText(hold);
+		}
 
 		switch (status) {
 		case IN_USE:
@@ -103,12 +113,16 @@ public class ClientPanel extends JPanel {
 	public void setNickname(String nickname) {
 		this.nickname = nickname;
 	}
+	public void setCurrentUser(String user) {
+		currentUser = user;
+	}
 
 	public String getIpAddress() { return ipAddress; }
 	public int getPort() { return port; }
 	public String getNickname() { return nickname; }
 	public boolean isLocalClientPanel() { return isLocalClientPanel; }
 	public Status getStatus() { return status; }
+	public String getCurrentUser() { return currentUser; }
 
 	public static ClientPanel createLocalPanel() {
 		InetAddress ip;

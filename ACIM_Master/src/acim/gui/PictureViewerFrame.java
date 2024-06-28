@@ -12,8 +12,8 @@ public class PictureViewerFrame extends JFrame {
 	private JPanel contentPane;
 	
 	public PictureViewerFrame(BufferedImage img, String name) {
-		int scaled_w = (int) (img.getWidth() * 0.65f);
-		int scaled_h = (int) (img.getHeight() * 0.65f);
+		int scaled_w = (int) (img.getWidth() * 0.5f);
+		int scaled_h = (int) (img.getHeight() * 0.5f);
 		BufferedImage scaled_img = new BufferedImage(
 				scaled_w,
 				scaled_h,

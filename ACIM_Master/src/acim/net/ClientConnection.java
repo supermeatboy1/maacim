@@ -8,6 +8,7 @@ import java.util.*;
 
 import javax.imageio.*;
 import javax.swing.*;
+import javax.swing.table.*;
 
 import acim.data.*;
 import acim.gui.*;
@@ -29,6 +30,7 @@ public class ClientConnection {
 	private UsageMonitoringThread usageThread = null;
 	
 	private Queue<String> commandQueue;
+	private String currentUser;
 
 	private ClientConnection() {}
 
@@ -54,6 +56,14 @@ public class ClientConnection {
 	public void queueCommand(String command) {
 		commandQueue.add(command);
 	}
+	public void updateUsageSeconds() {
+		if (usageThread != null)
+			usageThread.updateSeconds();
+	}
+	public void kickout() {
+		if (usageThread != null)
+			usageThread.kickout();
+	}
 	@Override
 	public boolean equals(Object other) {
 		if (other == null)
@@ -66,6 +76,10 @@ public class ClientConnection {
 	}
 	
 	public String getIpAddress() { return ipAddress; }
+	public void setCurrentUser(String newUser) {
+		currentUser = newUser;
+	}
+	public String getCurrentUser() { return currentUser; }
 
 	public void closeConnection() throws IOException {
 		client.close();
@@ -92,16 +106,11 @@ public class ClientConnection {
 			try {
 				writer.write("Welcome to the server!\r\n");
 				while (client.isConnected() && !client.isClosed()) {
-					//Thread.sleep(1);
 					String input = reader.readLine();
 					if (input == null) {
 						close();
 						return;
 					}
-					
-					// Skip blank lines.
-					if (input.isBlank() || input.equals("null"))
-						continue;
 
 					if (input.equals("quit") || input.equals("exit")) {
 						close();
@@ -156,9 +165,15 @@ public class ClientConnection {
 							queueCommand("login fail Invalid password.");
 						} else if (account.getAvailableSeconds() == 0) {
 							queueCommand("login fail Account balance is empty.");
-						} else {	
-							queueCommand("allow access");
+						} else if (ClientManager.getConnectionFromUsername(clientUsername) != null) {
+							queueCommand("login fail This username is currently in use.<br>Please try again later.");
+						} else {
+							account.updateLastLoginToNow();
+							
+							queueCommand("allow access " + account.getAvailableSeconds());
+							ClientManager.setClientPanelCurrentUser(ipAddress, clientUsername);
 							ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.IN_USE);
+							currentUser = clientUsername;
 							
 							usageThread = new UsageMonitoringThread(account);
 							usageThread.start();
@@ -190,6 +205,9 @@ public class ClientConnection {
 					// Empty all queued commands.
 					while (!commandQueue.isEmpty()) {
 						String command = commandQueue.poll();
+						if (command == null)
+							continue;
+						
 						if (command.equals("kickout") && usageThread != null) {
 							usageThread.interrupt();
 						}
@@ -207,35 +225,53 @@ public class ClientConnection {
 	private class UsageMonitoringThread extends Thread {
 		private Account account;
 		private long startMillis = 0;
+		private long endMillis = 0;
 		private UsageMonitoringThread(Account account) {
 			this.account = account;
-			
+			updateSeconds();
+		}
+		private void updateSeconds() {
 			startMillis = System.currentTimeMillis();
+			endMillis = startMillis + (account.getAvailableSeconds() * 1000);
+		}
+		private void kickout() {
+			queueCommand("kickout");
+			ClientManager.setClientPanelCurrentUser(ipAddress, "");
+			ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.ACTIVE);
+		}
+		private void deductSecond() {
+			// Deduct the available seconds for an account based on the time elapsed.
+			//long secondsDeduction = ((System.currentTimeMillis() - startMillis) / 1000);
+			
+			account.setAvailableSeconds(
+					account.getAvailableSeconds() - 1//secondsDeduction
+				);
+			
+			// Prevent negative seconds balance.
+			if (account.getAvailableSeconds() < 0)
+				account.setAvailableSeconds(0);
+
+			DatabaseManager.updateDatabaseLine(
+					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
+					account);
+			DatabaseManager.updateAccountTable();
 		}
 		
 		@Override
 		public void run() {
 			boolean interrupted = false;
-			
 			try {
-				Thread.sleep(account.getAvailableSeconds() * 1000);
+				while (System.currentTimeMillis() <= endMillis) {
+					Thread.sleep(1000); 
+					deductSecond();
+				}
 			} catch (InterruptedException e) {
 				interrupted = true;
 				
-				// Deduct the available seconds for an account based on the time elapsed.
-				long secondsDeduction = ((System.currentTimeMillis() - startMillis) / 1000);
-				
-				account.setAvailableSeconds(
-						account.getAvailableSeconds() - secondsDeduction
-					);
-				
-				// Prevent negative seconds balance.
-				if (account.getAvailableSeconds() < 0)
-					account.setAvailableSeconds(0);
+				//deduct();
 			}
 			
-			queueCommand("kickout");
-			ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.ACTIVE);
+			kickout();
 			
 			if (!interrupted)
 				account.setAvailableSeconds(0);
@@ -245,6 +281,7 @@ public class ClientConnection {
 					account);
 			DatabaseManager.updateAccountTable();
 			
+			currentUser = null;
 			usageThread = null;
 		}
 	}

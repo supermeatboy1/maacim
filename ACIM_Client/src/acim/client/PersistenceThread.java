@@ -20,9 +20,9 @@ public class PersistenceThread extends Thread {
 			while (persisting) {
 				robot.keyRelease(KeyEvent.VK_ALT);
 				robot.keyRelease(KeyEvent.VK_CONTROL);
-				robot.keyRelease(KeyEvent.VK_WINDOWS);
+				//robot.keyRelease(KeyEvent.VK_WINDOWS);
 				robot.keyRelease(KeyEvent.VK_TAB);
-				frame.requestFocus();
+				//frame.requestFocusInWindow();
 				Thread.sleep(80);
 			}
 		} catch (Exception e) {
@@ -32,4 +32,6 @@ public class PersistenceThread extends Thread {
 			return;
 		}
 	}
+	
+	public void stopPersisting() { persisting = false; }
 }
