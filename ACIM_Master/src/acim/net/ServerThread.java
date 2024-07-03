@@ -15,7 +15,7 @@ public class ServerThread {
 		new Thread() {
 			public void run() {
 				// Try starting the ServerSocket...
-				try (ServerSocket server = new ServerSocket(6969)) {
+				try (ServerSocket server = new ServerSocket(9600)) {
 					System.out.println("Server is now listening on: " + server.getInetAddress().getHostAddress() + ":" + server.getLocalPort());
 					
 					while (serverRunning) {

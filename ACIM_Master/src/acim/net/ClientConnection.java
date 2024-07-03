@@ -32,8 +32,6 @@ public class ClientConnection {
 	private Queue<String> commandQueue;
 	private String currentUser;
 
-	private ClientConnection() {}
-
 	public ClientConnection(Socket client) throws IOException {
 		super();
 		this.client = client;
@@ -268,9 +266,7 @@ public class ClientConnection {
 				account.setAvailableSeconds(0);
 
 			// Update database file.
-			DatabaseManager.updateDatabaseLine(
-					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
-					account);
+			DatabaseManager.updateAccount(account);
 			DatabaseManager.updateAccountTable();
 		}
 		
@@ -292,9 +288,7 @@ public class ClientConnection {
 				account.setAvailableSeconds(0);
 			
 			// Update database file.
-			DatabaseManager.updateDatabaseLine(
-					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
-					account);
+			DatabaseManager.updateAccount(account);
 			DatabaseManager.updateAccountTable();
 			
 			currentUser = null;

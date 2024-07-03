@@ -20,10 +20,11 @@ public class PersistenceThread extends Thread {
 			while (persisting) {
 				robot.keyRelease(KeyEvent.VK_ALT);
 				robot.keyRelease(KeyEvent.VK_CONTROL);
-				//robot.keyRelease(KeyEvent.VK_WINDOWS);
+				robot.keyRelease(KeyEvent.VK_WINDOWS);
 				robot.keyRelease(KeyEvent.VK_TAB);
-				//frame.requestFocusInWindow();
-				Thread.sleep(80);
+				// Can hinder the user's ability to type information. Commented out.
+				// frame.requestFocusInWindow();
+				Thread.sleep(50);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

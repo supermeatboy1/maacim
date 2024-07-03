@@ -79,7 +79,8 @@ public class ClientPanel extends JPanel {
 
 	public void updateText() {
 		if (isLocalClientPanel)
-			lblText.setText("<html><b>(This computer)<br>" + nickname + "</b><br>IP Address: " + ipAddress + "<br>Port: " + 6969 + "<br>ACTIVE</html>");
+			lblText.setText("<html><b>(This computer)<br>" + nickname + "</b><br>IP Address: " +
+							ipAddress + "<br>Port: " + 9600 + "<br>ACTIVE</html>");
 		else {
 			String hold;
 			if (status == Status.ACTIVE) {

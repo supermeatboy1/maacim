@@ -144,7 +144,7 @@ public class AccountModifierFrame extends JFrame {
 		initializeEnd();
 	}
 
-	private AccountModifierFrame(JTable table, Account modify, int selectedRow, int databaseLineNumber) {
+	private AccountModifierFrame(JTable table, Account modify) {
 		initializeStart(false);
 		
 		txtUsername.setText(modify.getUsername());
@@ -164,12 +164,15 @@ public class AccountModifierFrame extends JFrame {
 				// Check if a computer is currently connected to the user that is selected.
 				ClientConnection connection = ClientManager.getConnectionFromUsername(modify.getUsername());
 				if (connection != null) {
+					// Change the username of the client connection.
 					connection.setCurrentUser(txtUsername.getText());
+					// Change the username of the client panel, too.
 					ClientPanel panel = ClientManager.getPanelFromUser(modify.getUsername());
 					panel.setCurrentUser(txtUsername.getText());
 					panel.updateText();
 				}
-					
+				
+				// Update the account information in the object.
 				modify.setUsername(txtUsername.getText());
 				String passStr = new String(txtPassword.getPassword());
 				if (!passStr.isEmpty())
@@ -179,16 +182,11 @@ public class AccountModifierFrame extends JFrame {
 				modify.setEmail(txtEmail.getText());
 				modify.setPhoneNumber(txtPhoneNumber.getText());
 				modify.setNotes(txtNotes.getText());
-
-				DefaultTableModel model = (DefaultTableModel) table.getModel();
-				model.setValueAt(txtUsername.getText(), selectedRow, 0);
-				model.setValueAt(txtFirstName.getText(), selectedRow, 2);
-				model.setValueAt(txtLastName.getText(), selectedRow, 3);
-				model.setValueAt(txtEmail.getText(), selectedRow, 4);
-				model.setValueAt(txtPhoneNumber.getText(), selectedRow, 5);
-				model.setValueAt(txtNotes.getText(), selectedRow, 9);
 				
-				DatabaseManager.updateDatabaseLine(databaseLineNumber, modify);
+				// Save it to the database file.
+				DatabaseManager.updateAccount(modify);
+				// Update the JTable showing accounts.
+				DatabaseManager.updateAccountTable();
 				
 				dispose();
 			}
@@ -202,8 +200,8 @@ public class AccountModifierFrame extends JFrame {
 		return frame;
 	}
 
-	public static AccountModifierFrame updateAccountFrame(JTable table, Account modify, int selectedRow, int databaseLineNumber) {
-		AccountModifierFrame frame = new AccountModifierFrame(table, modify, selectedRow, databaseLineNumber);
+	public static AccountModifierFrame updateAccountFrame(JTable table, Account modify) {
+		AccountModifierFrame frame = new AccountModifierFrame(table, modify);
 		return frame;
 	}
 }

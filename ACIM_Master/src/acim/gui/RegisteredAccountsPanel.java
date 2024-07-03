@@ -75,8 +75,7 @@ public class RegisteredAccountsPanel extends JPanel {
 				
 				Account modifyingAccount = DatabaseManager.getAccountByUsername(
 						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
-				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modifyingAccount.getUsername());
-				AccountModifierFrame.updateAccountFrame(tableAccount, modifyingAccount, tableAccount.getSelectedRow(), databaseLineNumber);
+				AccountModifierFrame.updateAccountFrame(tableAccount, modifyingAccount);
 			}
 		});
 		panelAccountActions.add(btnUpdateInformation);
@@ -144,15 +143,10 @@ public class RegisteredAccountsPanel extends JPanel {
 				Account modify = DatabaseManager.getAccountByUsername(
 						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
 				
-				//if (connection != null)
-					// If a user is connected, deduct the account first.
-				//	connection.deductUsage();
-				
 				// Now add it to the balance.
 				modify.setAvailableSeconds((long) (modify.getAvailableSeconds() + (60 * minutes)));
-				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modify.getUsername());
-				
-				DatabaseManager.updateDatabaseLine(databaseLineNumber, modify);
+
+				DatabaseManager.updateAccount(modify);
 				DatabaseManager.updateAccountTable();
 
 				// Check if a computer is currently connected to the user that is selected.
@@ -179,10 +173,8 @@ public class RegisteredAccountsPanel extends JPanel {
 				String username = (String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0);
 				
 				Account modifyingAccount = DatabaseManager.getAccountByUsername(username);
-				int databaseLineNumber = DatabaseManager.getLineNumberFromUsername(modifyingAccount.getUsername());
-				DatabaseManager.removeDatabaseLine(databaseLineNumber);
 				DatabaseManager.removeAccount(modifyingAccount);
-				tableModel.removeRow(tableAccount.getSelectedRow());
+				DatabaseManager.updateAccountTable();
 
 				// Check if a computer is currently connected to the user that is selected.
 				ClientConnection connection = ClientManager.getConnectionFromUsername(username);

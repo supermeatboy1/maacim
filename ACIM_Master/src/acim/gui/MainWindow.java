@@ -1,4 +1,5 @@
 package acim.gui;
+
 import java.io.*;
 
 import java.awt.*;
@@ -20,7 +21,6 @@ public class MainWindow {
 			public void run() {
 				try {
 					UIManager.setLookAndFeel(new FlatDarkLaf());
-					DatabaseManager.loadAccountList();
 					
 					ServerThread.startServer();
 					ClientManager.initialize();
@@ -70,8 +70,7 @@ public class MainWindow {
 			public void windowDeactivated(WindowEvent e) {}
 		});
 		
-		// frame.setLocationRelativeTo(null);
-		frame.setLocation(0, 0);
+		frame.setLocationRelativeTo(null);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
 
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
