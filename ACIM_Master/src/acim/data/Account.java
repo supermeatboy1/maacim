@@ -1,4 +1,5 @@
 package acim.data;
+
 import java.time.*;
 import java.util.*;
 import java.text.*;
@@ -11,8 +12,6 @@ public class Account {
 	private long lastLogin; // Unix timestamp
 	private float totalHours;
 	private long availableSeconds;
-	
-	private Account() {}
 	
 	public Account(String username, String encodedPassword,
 					String firstName, String lastName, String email,
@@ -42,6 +41,11 @@ public class Account {
 	
 	public void updateLastLoginToNow() {
 		lastLogin = Instant.now(Clock.systemUTC()).getEpochSecond();
+	}
+	
+	public void addSecondToTotalHours() {
+		// A second is 1/3600 of an hour.
+		totalHours += 0.0002778f;
 	}
 	
 	public String getUsername() { return username; }

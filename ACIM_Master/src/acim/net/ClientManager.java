@@ -57,24 +57,25 @@ public class ClientManager {
 	public static void queueCommandToSelectedConnectionDirect(String command) {
 		selectedClientConnection.queueCommand(command);
 	}
-	public static void queueCommandToSelectedConnection(String command) {
+	public static boolean checkForSelectedConnection() {
 		if (selectedClientConnection == null) {
 			JOptionPane.showMessageDialog(null,
 					"<html>No computer selected!"
 					+ "<br>Please select a computer "
 					+ "before performing an action.</html>",
 					"No computer selected!", JOptionPane.ERROR_MESSAGE);
+			return false;
+		}
+		return true;
+	}
+	public static void queueCommandToSelectedConnection(String command) {
+		if (!checkForSelectedConnection()) {
 			return;
 		}
 		queueCommandToSelectedConnectionDirect(command);
 	}
 	public static String getSelectedIpAddress() {
-		if (selectedClientConnection == null) {
-			JOptionPane.showMessageDialog(null, "<html>No computer selected!"
-					+ "<br>Please select a computer "
-					+ "before performing an action.</html>",
-					"No computer selected!",
-					JOptionPane.ERROR_MESSAGE);
+		if (!checkForSelectedConnection()) {
 			return null;
 		}
 		return selectedClientConnection.getIpAddress();
@@ -143,6 +144,19 @@ public class ClientManager {
 				// https://stackoverflow.com/a/43267593
 				managerPanel.revalidate();
 				managerPanel.repaint();
+			}
+		}
+	}
+	public static void setClientPanelCurrentName(String ipAddress, String name) {
+		for (Component c : managerPanel.getComponents()) {
+			if (!(c instanceof ClientPanel))
+				continue;
+			
+			ClientPanel panel = (ClientPanel) c;
+			if (panel.getIpAddress().equals(ipAddress)) {
+				panel.setCurrentName(name);
+				panel.updateText();
+				return;
 			}
 		}
 	}

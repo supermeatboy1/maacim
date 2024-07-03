@@ -57,11 +57,11 @@ public class ClientConnection {
 		commandQueue.add(command);
 	}
 	public void updateUsageSeconds() {
-		if (usageThread != null)
+		if (usageThread != null && !usageThread.hasEnded())
 			usageThread.updateSeconds();
 	}
 	public void kickout() {
-		if (usageThread != null)
+		if (usageThread != null && !usageThread.hasEnded())
 			usageThread.kickout();
 	}
 	@Override
@@ -92,8 +92,7 @@ public class ClientConnection {
 			System.out.println("Client disconnected: " + client.getInetAddress().getHostAddress() + ":" + client.getPort());
 			
 			// Make sure to interrupt the usage thread.
-			// 
-			if (usageThread != null && !usageThread.isInterrupted())
+			if (usageThread != null && !usageThread.isInterrupted() && !usageThread.hasEnded())
 				usageThread.interrupt();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -172,6 +171,8 @@ public class ClientConnection {
 							
 							queueCommand("allow access " + account.getAvailableSeconds());
 							ClientManager.setClientPanelCurrentUser(ipAddress, clientUsername);
+							ClientManager.setClientPanelCurrentName(ipAddress,
+									account.getFirstName() + " " + account.getLastName());
 							ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.IN_USE);
 							currentUser = clientUsername;
 							
@@ -189,9 +190,11 @@ public class ClientConnection {
 	}
 
 	private class OutputThread extends Thread {
+		private int sentBytes;
 		@Override
 		public void run() {
 			try {
+				sentBytes = 0;
 				while (client.isConnected() && !client.isClosed()) {
 					// Wait until a command is queued.
 					while (commandQueue.isEmpty()) {
@@ -208,11 +211,20 @@ public class ClientConnection {
 						if (command == null)
 							continue;
 						
-						if (command.equals("kickout") && usageThread != null) {
+						if (command.equals("kickout") && usageThread != null && !usageThread.hasEnded()) {
 							usageThread.interrupt();
 						}
 						writer.write(command + "\r\n");
 						writer.flush();
+
+						sentBytes += command.length();
+						
+						// Limit the amount of bytes being sent.
+						if (sentBytes > 250000) {
+							sleep(500);
+							sentBytes = 0;
+							System.out.println("Throttling");
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -226,10 +238,13 @@ public class ClientConnection {
 		private Account account;
 		private long startMillis = 0;
 		private long endMillis = 0;
+		private boolean ended = false;
+		
 		private UsageMonitoringThread(Account account) {
 			this.account = account;
 			updateSeconds();
 		}
+		private boolean hasEnded() { return ended; }
 		private void updateSeconds() {
 			startMillis = System.currentTimeMillis();
 			endMillis = startMillis + (account.getAvailableSeconds() * 1000);
@@ -237,20 +252,22 @@ public class ClientConnection {
 		private void kickout() {
 			queueCommand("kickout");
 			ClientManager.setClientPanelCurrentUser(ipAddress, "");
+			ClientManager.setClientPanelCurrentName(ipAddress, "");
 			ClientManager.setClientPanelStatus(ipAddress, ClientPanel.Status.ACTIVE);
 		}
 		private void deductSecond() {
 			// Deduct the available seconds for an account based on the time elapsed.
-			//long secondsDeduction = ((System.currentTimeMillis() - startMillis) / 1000);
 			
 			account.setAvailableSeconds(
-					account.getAvailableSeconds() - 1//secondsDeduction
+					account.getAvailableSeconds() - 1
 				);
+			account.addSecondToTotalHours();
 			
 			// Prevent negative seconds balance.
 			if (account.getAvailableSeconds() < 0)
 				account.setAvailableSeconds(0);
 
+			// Update database file.
 			DatabaseManager.updateDatabaseLine(
 					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
 					account);
@@ -267,8 +284,6 @@ public class ClientConnection {
 				}
 			} catch (InterruptedException e) {
 				interrupted = true;
-				
-				//deduct();
 			}
 			
 			kickout();
@@ -276,13 +291,14 @@ public class ClientConnection {
 			if (!interrupted)
 				account.setAvailableSeconds(0);
 			
+			// Update database file.
 			DatabaseManager.updateDatabaseLine(
 					DatabaseManager.getLineNumberFromUsername(account.getUsername()),
 					account);
 			DatabaseManager.updateAccountTable();
 			
 			currentUser = null;
-			usageThread = null;
+			ended = true;
 		}
 	}
 }

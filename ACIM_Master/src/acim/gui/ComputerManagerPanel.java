@@ -3,8 +3,7 @@ package acim.gui;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Base64;
+import java.util.*;
 
 import javax.swing.*;
 
@@ -60,6 +59,9 @@ public class ComputerManagerPanel extends JPanel {
 		btnSendFile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (!ClientManager.checkForSelectedConnection())
+					return;
+				
 				JFileChooser chooser = new JFileChooser();
 				if (chooser.showOpenDialog(thisPanel) != JFileChooser.APPROVE_OPTION)
 					return;
@@ -107,6 +109,8 @@ public class ComputerManagerPanel extends JPanel {
 								progressFrame.requestFocus();
 							}
 							ClientManager.queueCommandToSelectedConnectionDirect("end sending file");
+							
+							fis.close();
 						} catch (IOException e1) {
 							e1.printStackTrace();
 							ClientManager.queueCommandToSelectedConnectionDirect("cancel sending file");

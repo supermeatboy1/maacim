@@ -30,7 +30,7 @@ public class ClientPanel extends JPanel {
 	private JLabel lblText;
 	private Color defaultBackgroundColor;
 	private Color defaultTextColor;
-	private String currentUser = "";
+	private String currentUser = "", currentName = "";
 
 	public ClientPanel(String ipAddress, int port, String nickname) {
 		ClientPanel thisPanel = this;
@@ -87,7 +87,8 @@ public class ClientPanel extends JPanel {
 						"<br>Port: " + port + "<br>" + status + "</html>";
 			} else {
 				hold = "<html><b>" + nickname + "</b><br>IP Address: " + ipAddress +
-						"<br>Port: " + port + "<br>" + status + "<br>Logged In: " + currentUser + "</html>";
+						"<br>Port: " + port + "<br>" + status + "<br>Logged In: " +
+						currentName + " - \"" + currentUser + "\"" + "</html>";
 			}
 			lblText.setText(hold);
 		}
@@ -115,6 +116,9 @@ public class ClientPanel extends JPanel {
 	}
 	public void setCurrentUser(String user) {
 		currentUser = user;
+	}
+	public void setCurrentName(String name) {
+		currentName = name;
 	}
 
 	public String getIpAddress() { return ipAddress; }

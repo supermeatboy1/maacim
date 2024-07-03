@@ -96,8 +96,24 @@ public class RegisteredAccountsPanel extends JPanel {
 		});
 		panelAccountActions.add(btnViewInformation);
 		
-		JButton btnSearch = new JButton("Search");
-		panelAccountActions.add(btnSearch);
+		JButton btnLogout = new JButton("Logout");
+		btnLogout.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// Return if there is no selected row.
+				if (tableAccount.getSelectedRow() == -1)
+					return;
+				String username = (String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0);
+				
+				ClientConnection conn = ClientManager.getConnectionFromUsername(username);
+				if (conn == null)
+					JOptionPane.showMessageDialog(null, "The user \"" + username + "\" is not currently "
+							+ "logged in on any connected computers.");
+				else
+					conn.kickout();
+			}
+		});
+		panelAccountActions.add(btnLogout);
 		
 		JButton btnNewAccount = new JButton("New Account");
 		btnNewAccount.addActionListener(new ActionListener() {

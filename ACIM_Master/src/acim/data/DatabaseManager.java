@@ -1,4 +1,6 @@
 package acim.data;
+
+import java.text.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -10,12 +12,13 @@ public class DatabaseManager {
 	private static final long TABLE_UPDATE_MILLISECONDS_LIMIT = 1000;
 	
 	private static ArrayList<Account> accountList;
-	private static String DB_SEPARATOR = "\uE000";
+	private static String ROW_SEPARATOR = "\uE000";
 
 	private static JTable tableAccounts = null;
 	private static DefaultTableModel tableModel = null;
 	
 	private static long lastTableUpdateMillis = 0;
+	private static NumberFormat decimalFormatter = new DecimalFormat("0.00");
 	
 	public static void loadAccountList() throws IOException {
 		File file = new File("Accounts.txt");
@@ -32,7 +35,7 @@ public class DatabaseManager {
 			String line = fileScan.nextLine();
 			if (line.strip().isEmpty())
 				continue;
-			String[] split = line.split(DB_SEPARATOR);
+			String[] split = line.split(ROW_SEPARATOR);
 			Account readAccount = new Account(
 				split[0], split[1], split[2], split[3], split[4], split[5], split[9]
 			);
@@ -76,12 +79,11 @@ public class DatabaseManager {
 							account.getPhoneNumber(),
 							"" + account.getAvailableSeconds(),
 							account.getLastLoginFormattedString(),
-							"" + account.getTotalHours(),
+							decimalFormatter.format(account.getTotalHours()),
 							account.getNotes()
 						});
 				}
 				
-				// 
 				if (selectedRow != -1) {
 					try {
 						tableAccounts.setRowSelectionInterval(selectedRow, selectedRow);
@@ -107,15 +109,15 @@ public class DatabaseManager {
 	}
 	
 	private static String serializeAccount(Account account) {
-		return account.getUsername() + DB_SEPARATOR +
-				account.getEncodedPassword() + DB_SEPARATOR +
-				account.getFirstName() + DB_SEPARATOR +
-				account.getLastName() + DB_SEPARATOR +
-				account.getEmail() + DB_SEPARATOR +
-				account.getPhoneNumber() + DB_SEPARATOR +
-				account.getAvailableSeconds() + DB_SEPARATOR +
-				account.getLastLogin() + DB_SEPARATOR +
-				account.getTotalHours() + DB_SEPARATOR +
+		return account.getUsername() + ROW_SEPARATOR +
+				account.getEncodedPassword() + ROW_SEPARATOR +
+				account.getFirstName() + ROW_SEPARATOR +
+				account.getLastName() + ROW_SEPARATOR +
+				account.getEmail() + ROW_SEPARATOR +
+				account.getPhoneNumber() + ROW_SEPARATOR +
+				account.getAvailableSeconds() + ROW_SEPARATOR +
+				account.getLastLogin() + ROW_SEPARATOR +
+				account.getTotalHours() + ROW_SEPARATOR +
 				account.getNotes();
 	}
 	
@@ -138,7 +140,7 @@ public class DatabaseManager {
 			// Get the contents of the file as an ArrayList.
 			ArrayList<String> content = new ArrayList<String>(Files.readAllLines(Paths.get("Accounts.txt")));
 			for (int i = 0; i < content.size(); i++) {
-				if (content.get(i).split(DB_SEPARATOR)[0].equals(username)) {
+				if (content.get(i).split(ROW_SEPARATOR)[0].equals(username)) {
 					return i;
 				}
 			}
