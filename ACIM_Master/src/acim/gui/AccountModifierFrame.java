@@ -8,8 +8,7 @@ import javax.swing.border.*;
 import javax.swing.table.*;
 
 import acim.data.*;
-import acim.net.ClientConnection;
-import acim.net.ClientManager;
+import acim.net.*;
 
 public class AccountModifierFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -35,7 +34,7 @@ public class AccountModifierFrame extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(new GridLayout(0, 2, 8, 8));
 
-		JLabel lblUsername = new JLabel("Username");
+		JLabel lblUsername = new JLabel("<html>Username <b>(required)</b></html>");
 		contentPane.add(lblUsername);
 
 		txtUsername = new JTextField();
@@ -44,9 +43,9 @@ public class AccountModifierFrame extends JFrame {
 		txtUsername.setColumns(10);
 
 		if (isCreatingNewAccount)
-			lblPassword = new JLabel("Password");
+			lblPassword = new JLabel("<html>Password <b>(required)</b></html>");
 		else
-			lblPassword = new JLabel("New password (blank if unchanged)");
+			lblPassword = new JLabel("<html>New password <b>(blank if unchanged)</b></html>");
 		contentPane.add(lblPassword);
 
 		txtPassword = new JPasswordField();
@@ -117,6 +116,22 @@ public class AccountModifierFrame extends JFrame {
 		btnProceed.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (txtUsername.getText().isBlank()) {
+					JOptionPane.showMessageDialog(null, "Blank usernames are not allowed.",
+							"Account creation error", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				if (txtPassword.getText().isBlank()) {
+					JOptionPane.showMessageDialog(null, "Blank passwords are not allowed.",
+							"Account creation error", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				if (DatabaseManager.getAccountByUsername(txtUsername.getText()) != null) {
+					JOptionPane.showMessageDialog(null, "Duplicate usernames are not allowed.",
+							"Account creation error", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				
 				Account newAccount = new Account(txtUsername.getText(), null, txtFirstName.getText(),
 						txtLastName.getText(), txtEmail.getText(),
 						txtPhoneNumber.getText(), txtNotes.getText());
@@ -131,11 +146,14 @@ public class AccountModifierFrame extends JFrame {
 						txtLastName.getText(),
 						txtEmail.getText(),
 						txtPhoneNumber.getText(),
-						"0.0",
+						"0",
 						newAccount.getLastLoginFormattedString(),
-						"0.0",
+						"0.00",
 						txtNotes.getText()
 				});
+
+				// Instantly update the JTable showing the accounts.
+				DatabaseManager.updateAccountTable(true);
 
 				dispose();
 			}
@@ -144,7 +162,7 @@ public class AccountModifierFrame extends JFrame {
 		initializeEnd();
 	}
 
-	private AccountModifierFrame(JTable table, Account modify) {
+	private AccountModifierFrame(JTable table, Account modify, int selectedRow) {
 		initializeStart(false);
 		
 		txtUsername.setText(modify.getUsername());
@@ -158,22 +176,29 @@ public class AccountModifierFrame extends JFrame {
 		btnProceed.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (txtUsername.getText().isBlank())
+				if (txtUsername.getText().isBlank()) {
+					JOptionPane.showMessageDialog(null, "Blank usernames are not allowed.",
+							"Account creation error", JOptionPane.ERROR_MESSAGE);
 					return;
+				}
 					
+				String oldUsername = modify.getUsername();
 				// Check if a computer is currently connected to the user that is selected.
-				ClientConnection connection = ClientManager.getConnectionFromUsername(modify.getUsername());
+				ClientConnection connection = ClientManager.getConnectionFromUsername(oldUsername);
+				// Update the available seconds data based on the table.
+				long currentSeconds = Long.parseLong((String) DatabaseManager.getAccountTableModel().getValueAt(selectedRow, 6));
+				modify.setAvailableSeconds(currentSeconds);
+				modify.setUsername(txtUsername.getText());
 				if (connection != null) {
 					// Change the username of the client connection.
 					connection.setCurrentUser(txtUsername.getText());
-					// Change the username of the client panel, too.
-					ClientPanel panel = ClientManager.getPanelFromUser(modify.getUsername());
-					panel.setCurrentUser(txtUsername.getText());
-					panel.updateText();
+					// Change the username and full name in the client panel, too.
+					String ipAddress = connection.getIpAddress();
+					ClientManager.setClientPanelCurrentUser(ipAddress, txtUsername.getText());
+					ClientManager.setClientPanelCurrentName(ipAddress, txtFirstName.getText() + " " + txtLastName.getText());
 				}
 				
 				// Update the account information in the object.
-				modify.setUsername(txtUsername.getText());
 				String passStr = new String(txtPassword.getPassword());
 				if (!passStr.isEmpty())
 					modify.setPassword(passStr);
@@ -182,11 +207,17 @@ public class AccountModifierFrame extends JFrame {
 				modify.setEmail(txtEmail.getText());
 				modify.setPhoneNumber(txtPhoneNumber.getText());
 				modify.setNotes(txtNotes.getText());
+
+				if (connection != null) {
+					connection.setAccount(modify);
+				}
 				
+				// Change the username in the accounts file if necessary.
+				DatabaseManager.updateAccountUsername(modify, oldUsername);
 				// Save it to the database file.
 				DatabaseManager.updateAccount(modify);
-				// Update the JTable showing accounts.
-				DatabaseManager.updateAccountTable();
+				// Instantly update the JTable showing the accounts.
+				DatabaseManager.updateAccountTable(true);
 				
 				dispose();
 			}
@@ -200,8 +231,8 @@ public class AccountModifierFrame extends JFrame {
 		return frame;
 	}
 
-	public static AccountModifierFrame updateAccountFrame(JTable table, Account modify) {
-		AccountModifierFrame frame = new AccountModifierFrame(table, modify);
+	public static AccountModifierFrame updateAccountFrame(JTable table, Account modify, int selectedRow) {
+		AccountModifierFrame frame = new AccountModifierFrame(table, modify, selectedRow);
 		return frame;
 	}
 }

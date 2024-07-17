@@ -1,6 +1,7 @@
 package acim.data;
 
 import java.text.*;
+import java.io.File;
 import java.io.IOException;
 //import java.io.*;
 import java.nio.file.*;
@@ -22,7 +23,24 @@ public class DatabaseManager {
 		tableModel = (DefaultTableModel) tableAccounts.getModel();
 	}
 	public static DefaultTableModel getAccountTableModel() { return tableModel; }
+	private static void createAccountsFile() {
+		try {
+			File f = new File("Accounts.txt");
+			if (!f.exists()) {
+				f.createNewFile();
+			} else {
+				if (f.isDirectory()) {
+					f.delete();
+					f.createNewFile();
+				}
+			}
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(null, "Accounts file creation error: " + e.getLocalizedMessage(),
+					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
+		}
+	}
 	private static Stream<String> getAccountContentsStream() {
+		createAccountsFile();
 		try {
 			return Files.lines(Paths.get("Accounts.txt"));
 		} catch (IOException e) {
@@ -32,6 +50,7 @@ public class DatabaseManager {
 		}
 	}
 	private static List<String> getAccountContentsList() {
+		createAccountsFile();
 		try {
 			return Files.readAllLines(Paths.get("Accounts.txt"));
 		} catch (IOException e) {
@@ -41,6 +60,7 @@ public class DatabaseManager {
 		}
 	}
 	private static void saveAccountListContents(List<String> contents) {
+		createAccountsFile();
 		try {
 			Files.write(Paths.get("Accounts.txt"), contents);
 		} catch (IOException e) {
@@ -68,9 +88,11 @@ public class DatabaseManager {
 				account.getNotes()
 			});
 	}
-	
 	public static void updateAccountTable() {
-		if (System.currentTimeMillis() - lastTableUpdateMillis < TABLE_UPDATE_MILLISECONDS_LIMIT)
+		updateAccountTable(false);
+	}
+	public static void updateAccountTable(boolean forceUpdate) {
+		if (!forceUpdate && System.currentTimeMillis() - lastTableUpdateMillis < TABLE_UPDATE_MILLISECONDS_LIMIT)
 			return;
 		
 		// To fix JTable flickering...
@@ -100,7 +122,9 @@ public class DatabaseManager {
 				dbContentStream.close();
 			}
 		});
-		lastTableUpdateMillis = System.currentTimeMillis();
+		
+		if (!forceUpdate)
+			lastTableUpdateMillis = System.currentTimeMillis();
 	}
 
 	public static Account getAccountByUsername(String username) {
@@ -133,6 +157,7 @@ public class DatabaseManager {
 	}
 	public static void createNewAccount(Account account) {
 		// Add account to account list stored in the file.
+		createAccountsFile();
 		try {
 			Files.write(Paths.get("Accounts.txt"), (serializeAccount(account) + "\r\n"
 						).getBytes(), StandardOpenOption.APPEND);
@@ -141,6 +166,20 @@ public class DatabaseManager {
 					e.getClass().getSimpleName(), JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+	public static void updateAccountUsername(Account updatedAccount, String oldUsername) {
+		if (updatedAccount.getUsername().equals(oldUsername))
+			return;
+		
+		List<String> rowList = getAccountContentsList();
+		int lineNumber = 0;
+		for (String row : rowList) {
+			Account outdatedAccount = deserializeAccount(row);
+			if (outdatedAccount.getUsername().equals(oldUsername))
+				rowList.set(lineNumber, serializeAccount(updatedAccount));
+			lineNumber++;
+		}
+		saveAccountListContents(rowList);
 	}
 	public static void updateAccount(Account account) {
 		List<String> rowList = getAccountContentsList();

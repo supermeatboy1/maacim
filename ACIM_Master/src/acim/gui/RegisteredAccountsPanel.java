@@ -70,12 +70,14 @@ public class RegisteredAccountsPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// Return if there is no selected row.
-				if (tableAccount.getSelectedRow() == -1)
+				if (tableAccount.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(null, "Please select a row first.");
 					return;
+				}
 				
 				Account modifyingAccount = DatabaseManager.getAccountByUsername(
 						(String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0));
-				AccountModifierFrame.updateAccountFrame(tableAccount, modifyingAccount);
+				AccountModifierFrame.updateAccountFrame(tableAccount, modifyingAccount, tableAccount.getSelectedRow());
 			}
 		});
 		panelAccountActions.add(btnUpdateInformation);
@@ -85,8 +87,10 @@ public class RegisteredAccountsPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// Return if there is no selected row.
-				if (tableAccount.getSelectedRow() == -1)
+				if (tableAccount.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(null, "Please select a row first.");
 					return;
+				}
 				String username = (String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0);
 				
 				Account account = DatabaseManager.getAccountByUsername(username);
@@ -100,8 +104,10 @@ public class RegisteredAccountsPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// Return if there is no selected row.
-				if (tableAccount.getSelectedRow() == -1)
+				if (tableAccount.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(null, "Please select a row first.");
 					return;
+				}
 				String username = (String) tableAccount.getValueAt(tableAccount.getSelectedRow(), 0);
 				
 				ClientConnection conn = ClientManager.getConnectionFromUsername(username);
@@ -119,6 +125,7 @@ public class RegisteredAccountsPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				AccountModifierFrame.newAccountFrame(tableAccount);
+				DatabaseManager.updateAccountTable(true);
 			}
 		});
 		panelAccountActions.add(btnNewAccount);
@@ -127,8 +134,11 @@ public class RegisteredAccountsPanel extends JPanel {
 		btnPayForMinutes.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (tableAccount.getSelectedRow() < 0)
+				// Return if there is no selected row.
+				if (tableAccount.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(null, "Please select a row first.");
 					return;
+				}
 				
 				String input = JOptionPane.showInputDialog("How many minutes?");
 				
@@ -154,6 +164,7 @@ public class RegisteredAccountsPanel extends JPanel {
 				if (connection != null) {
 					// Update the seconds counter on the computer that's connected to the user.
 					connection.queueCommand("update available seconds " + modify.getAvailableSeconds());
+					connection.setAccount(modify);
 					connection.updateUsageSeconds();
 				}
 			}
@@ -164,6 +175,11 @@ public class RegisteredAccountsPanel extends JPanel {
 		btnDeleteAccount.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				// Return if there is no selected row.
+				if (tableAccount.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(null, "Please select a row first.");
+					return;
+				}
 				if (JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this account?") != 0)
 					return;
 				
@@ -174,7 +190,7 @@ public class RegisteredAccountsPanel extends JPanel {
 				
 				Account modifyingAccount = DatabaseManager.getAccountByUsername(username);
 				DatabaseManager.removeAccount(modifyingAccount);
-				DatabaseManager.updateAccountTable();
+				DatabaseManager.updateAccountTable(true);
 
 				// Check if a computer is currently connected to the user that is selected.
 				ClientConnection connection = ClientManager.getConnectionFromUsername(username);

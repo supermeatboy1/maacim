@@ -62,6 +62,15 @@ public class ClientConnection {
 		if (usageThread != null && !usageThread.hasEnded())
 			usageThread.kickout();
 	}
+	public void setAccount(Account newAccount) {
+		if (usageThread != null && !usageThread.hasEnded())
+			usageThread.setAccount(newAccount);
+	}
+	public long getAccountSeconds() {
+		if (usageThread != null && !usageThread.hasEnded())
+			usageThread.account.getAvailableSeconds();
+		return -1;
+	}
 	@Override
 	public boolean equals(Object other) {
 		if (other == null)
@@ -239,8 +248,11 @@ public class ClientConnection {
 		private boolean ended = false;
 		
 		private UsageMonitoringThread(Account account) {
-			this.account = account;
+			setAccount(account);
 			updateSeconds();
+		}
+		private void setAccount(Account account) {
+			this.account = account;
 		}
 		private boolean hasEnded() { return ended; }
 		private void updateSeconds() {

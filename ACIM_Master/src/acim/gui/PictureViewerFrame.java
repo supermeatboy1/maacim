@@ -12,8 +12,8 @@ public class PictureViewerFrame extends JFrame {
 	private JPanel contentPane;
 	
 	public PictureViewerFrame(BufferedImage img, String name) {
-		int scaled_w = (int) (img.getWidth() * 0.5f);
-		int scaled_h = (int) (img.getHeight() * 0.5f);
+		int scaled_w = (int) (img.getWidth() * 0.65f);
+		int scaled_h = (int) (img.getHeight() * 0.65f);
 		BufferedImage scaled_img = new BufferedImage(
 				scaled_w,
 				scaled_h,
@@ -27,20 +27,8 @@ public class PictureViewerFrame extends JFrame {
 		contentPane.setLayout(new BorderLayout(0, 0));
 		contentPane.setBorder(new EmptyBorder(16, 16, 16, 16));
 		
-		JButton saveButton = new JButton("Save Picture");
-		saveButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				System.out.println("OUUU?");
-			}
-		});
 		contentPane.add(new JLabel(new ImageIcon(scaled_img)), BorderLayout.NORTH);
 		contentPane.add(Box.createVerticalStrut(16), BorderLayout.CENTER);
-		
-		JPanel actionPanel = new JPanel();
-		actionPanel.add(saveButton);
-
-		contentPane.add(actionPanel, BorderLayout.SOUTH);
 		
 		setResizable(false);
 		setTitle(name);

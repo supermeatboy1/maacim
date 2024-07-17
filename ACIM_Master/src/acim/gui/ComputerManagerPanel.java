@@ -138,6 +138,9 @@ public class ComputerManagerPanel extends JPanel {
 		btnKickOut.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (!ClientManager.checkForSelectedConnection()) {
+					return;
+				}
 				ClientManager.queueCommandToSelectedConnection("kickout");
 				ClientManager.setClientPanelStatus(ClientManager.getSelectedIpAddress(), ClientPanel.Status.ACTIVE);
 			}
